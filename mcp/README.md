@@ -113,6 +113,26 @@ The MCP servers follow these principles:
 4. **Type Safety** - Full type annotations with Pydantic models
 5. **Mock Support** - Built-in mocks for testing and development
 
+## Integration Requirements
+
+### Dependencies
+
+The MCP servers expect these packages to be available when running without mocks:
+
+- `ai_db` - The AI-DB core engine (from `/workspace/ai-db`)
+- `ai_frontend` - The AI-Frontend engine (from `/workspace/ai-frontend`)
+- `git_layer` - The Git-Layer transaction support (from `/workspace/git-layer`)
+
+### Protocol Interfaces
+
+The MCP servers define protocol interfaces that the dependencies must implement:
+
+- `AIDBProtocol` - Interface for AI-DB implementations
+- `AIFrontendProtocol` - Interface for AI-Frontend implementations
+- `GitLayerProtocol` - Interface for Git-Layer implementations
+
+See `src/protocols.py` for the complete interface definitions.
+
 ## Integration with MCP Clients
 
 The servers use stdio transport and can be integrated with any MCP-compatible client. Example configuration for Claude Desktop:
