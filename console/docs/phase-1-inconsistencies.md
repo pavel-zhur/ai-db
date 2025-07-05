@@ -2,77 +2,108 @@
 
 ## Overview
 
-This document identifies inconsistencies found across the five parallel implementations (AI-DB, AI-Frontend, Git-Layer, MCP Server, and Console) that need to be resolved for proper system integration.
+This document identifies inconsistencies found across the five parallel implementations (AI-DB, AI-Frontend, Git-Layer, MCP Server, and Console) that need to be resolved for proper system integration. Updated after reading all phase-1-implementation.md files.
 
-## Critical Inconsistencies
+## Critical Architectural Gaps
 
-### 1. Missing API Server Component
+### 1. Missing AI-DB API Server Component
 
-**Issue**: AI-Frontend expects an HTTP API server but none exists.
+**Issue**: AI-Frontend expects an HTTP API server, but none exists.
 
 **Details**:
-- AI-Frontend is configured to call API endpoints (POST /api/query, POST /api/execute)
-- AI-DB is implemented as a library, not a server
-- MCP Server provides MCP protocol tools, not HTTP endpoints
-- No project is responsible for creating the HTTP API bridge
+- AI-Frontend's `api_generator.py` generates code calling `POST /api/query` and `POST /api/execute` endpoints
+- AI-DB is implemented as a library (`AIDB` class), not an HTTP server
+- MCP Server provides MCP protocol tools, not HTTP REST endpoints
+- Console directly imports and uses AI-DB library
 
-**Impact**: AI-Frontend cannot communicate with AI-DB in production.
+**Impact**: Generated frontends cannot communicate with AI-DB.
 
-**Recommendation**: Need a new component "ai-db-api-server" that:
-- Wraps AI-DB library
-- Exposes HTTP endpoints
-- Handles transaction management
-- Manages AI-DB lifecycle
+**Console's Current Approach**: Direct library usage, which works for console but not for frontends.
 
-### 2. Transaction Context Interface Mismatch
+**Recommendation**: Need new "ai-db-api-server" component that:
+```python
+# Wraps AI-DB library in HTTP endpoints
+POST /api/query -> AIDB.execute() with SELECT permission
+POST /api/execute -> AIDB.execute() with appropriate permission
+GET /api/schema -> AIDB.get_schema()
+```
 
-**Issue**: Different transaction context interfaces across projects.
+### 2. Git-Layer Async/Sync Confusion
 
-**AI-DB expects**:
+**Issue**: Git-Layer is synchronous but all consumers expect async.
+
+**Git-Layer Implementation**:
+- All methods are synchronous
+- Context manager uses `__enter__`/`__exit__` (not async versions)
+- No async support mentioned in implementation
+
+**Consumer Expectations**:
+- Console uses `async with GitTransaction()` and `await transaction.__aenter__()`
+- AI-DB is fully async and expects async transaction context
+- MCP Server expects async transaction operations
+
+**Impact**: Console's async usage of sync Git-Layer will fail at runtime.
+
+**Recommendation**: Either:
+1. Add async wrapper to Git-Layer, or
+2. Update all consumers to use sync calls with `asyncio.run_in_executor()`
+
+### 3. Transaction Context Interface Mismatch
+
+**Issue**: Multiple incompatible transaction context interfaces.
+
+**Git-Layer Provides**:
+```python
+class Transaction:
+    @property
+    def path(self) -> str  # Not "working_directory"
+    def write_escalation_required(self)  # Not "escalate_write()"
+    def operation_complete(message: str)
+    def checkpoint(message: str)
+```
+
+**AI-DB Expects**:
 ```python
 class TransactionContext:
     transaction_id: str
-    working_directory: str  # String type
-    is_write_escalated: bool = False
-    def escalate_write(self) -> str: ...
+    working_directory: str  # Not "path"
+    is_write_escalated: bool
+    def escalate_write(self) -> str  # Not "write_escalation_required()"
 ```
 
-**AI-Frontend expects**:
+**AI-Frontend Expects**:
 ```python
 @dataclass
 class TransactionContext:
     transaction_id: str
-    working_directory: Path  # Path type
-    commit_message_callback: Optional[callable] = None
+    working_directory: Path  # Path type, not str
+    commit_message_callback: Optional[callable]
 ```
 
-**Git-Layer provides**:
-- `path` property (not `working_directory`)
-- `write_escalation_required()` method (not `escalate_write()`)
-- `operation_complete(message)` for intermediate commits
+**Console Currently Does**: Passes Git-Layer Transaction directly to AI-DB, which won't work.
 
-**Console uses**:
-- Direct GitTransaction from git-layer
-- No abstraction layer
+**Recommendation**: Create adapter classes or standardize on actual Git-Layer interface.
 
-**Impact**: Components cannot share transaction contexts.
+### 4. Schema Format Incompatibility
 
-**Recommendation**: Standardize on Git-Layer's actual interface or create adapter classes.
+**Issue**: AI-DB and AI-Frontend use completely different schema formats.
 
-### 3. Schema Format Incompatibility
-
-**Issue**: AI-DB and AI-Frontend use different schema formats.
-
-**AI-DB schema format** (YAML):
+**AI-DB Actual Storage** (from implementation):
 ```yaml
+# schemas/users.schema.yaml
 name: users
+description: User accounts table
 columns:
   - name: id
     type: integer
     nullable: false
+    primary_key: true
+constraints:
+  - type: primary_key
+    columns: [id]
 ```
 
-**AI-Frontend expects** (JSON Schema):
+**AI-Frontend Expects** (JSON Schema format):
 ```json
 {
   "tables": {
@@ -80,7 +111,8 @@ columns:
       "columns": {
         "id": {
           "type": "integer",
-          "required": true
+          "required": true,
+          "primary_key": true
         }
       }
     }
@@ -88,153 +120,156 @@ columns:
 }
 ```
 
-**Impact**: Schema cannot be passed directly from AI-DB to AI-Frontend.
+**Console's Problem**: When fetching schema for frontend generation, formats won't match.
 
-**Recommendation**: AI-DB should provide schema in JSON Schema format or add a converter.
-
-### 4. Permission Level Handling Ambiguity
-
-**Issue**: Inconsistent permission level handling.
-
-**Current State**:
-- AI-DB requires explicit PermissionLevel enum in execute()
-- MCP Server is told to "infer" permissions from operations
-- Console maps command types to permissions
-
-**Impact**: MCP tools might infer permissions incorrectly.
-
-**Recommendation**: MCP Server should use the same mapping logic as Console.
-
-### 5. Async/Sync Integration Issues
-
-**Issue**: Mixed async/sync patterns.
-
-**Current State**:
-- AI-DB is fully async
-- AI-Frontend is fully async
-- Git-Layer examples show sync context manager
-- Console uses async with Git-Layer (but Git-Layer examples are sync)
-
-**Impact**: Unclear if Git-Layer actually supports async.
-
-**Recommendation**: Verify Git-Layer's async support or add async wrappers.
-
-### 6. File Path Inconsistencies
-
-**Issue**: Different file organization documented.
-
-**AI-DB phase-1-implementation.md** shows:
-- data/schemas/{table}.schema.yaml
-- data/tables/{table}.yaml
-- data/views/{view}.py
-
-**AI-DB API.md** shows:
-- schemas/{table}.schema.yaml (no data/ prefix)
-
-**Impact**: Confusion about actual file structure.
-
-**Recommendation**: Standardize and document the exact structure.
-
-### 7. Configuration Management Chaos
-
-**Issue**: No unified configuration approach.
-
-**Current State**:
-- Each project has different config mechanisms
-- Environment variable names not coordinated
-- Some use Pydantic, others use dictionaries
-- MCP Server configuration approach unclear
-
-**Impact**: Difficult to configure the full system.
-
-**Recommendation**: Create a unified configuration schema.
-
-### 8. Chrome MCP Integration Confusion
-
-**Issue**: Chrome MCP mentioned but not integrated.
-
-**Details**:
-- AI-Frontend technical Q&A mentions Chrome MCP
-- MCP Server says visual features are "irrelevant"
-- No actual Chrome MCP integration exists
-
-**Impact**: Expected feature missing.
-
-**Recommendation**: Clarify if Chrome MCP is needed for phase 1.
-
-### 9. Operation Completion Tracking
-
-**Issue**: Git-Layer expects operation tracking but it's not used.
-
-**Git-Layer provides**: `operation_complete(message)` for each operation
-**Other projects**: Don't call this method
-
-**Impact**: Transaction branches might not have granular commits.
-
-**Recommendation**: Decide if granular commits are needed.
-
-### 10. Error Handling Philosophy
-
-**Issue**: Different retry limits and strategies.
-
-**Current State**:
-- AI-DB: 3 retry attempts
-- AI-Frontend: 5 iterations max
-- Different timeout values
-- Inconsistent error recovery approaches
-
-**Impact**: Unpredictable behavior under failure.
-
-**Recommendation**: Standardize retry policies.
-
-## Integration Gaps
-
-### 1. No Compiled Query Execution in MCP
-
-MCP Server doesn't expose the compiled query execution tool that AI-DB provides.
-
-### 2. Semantic Documentation Location
-
-Multiple mentions of "semantic docs" but no standard location or format defined.
-
-### 3. Transaction Message Sources
-
-Git-Layer expects commit messages but it's unclear who provides them:
-- AI-DB might provide them
-- Console currently uses generic messages
-- AI-Frontend doesn't specify
+**Recommendation**: AI-DB needs to provide a `get_schema()` method that returns JSON Schema format.
 
 ## Console-Specific Issues
 
-### 1. Direct Library Dependencies
+### 1. Incorrect Transaction Usage
 
-Console imports ai-db, ai-frontend, and git-layer directly, assuming they're pip-installable. The Docker build assumes local file paths.
+**Current Console Code**:
+```python
+self._git_transaction = GitTransaction(
+    repo_path=self._config.git_layer.repo_path,
+    message="Console transaction"
+)
+await self._git_transaction.__aenter__()  # WRONG - Git-Layer is sync
+```
 
-### 2. No API Server Integration
+**Should Be** (if Git-Layer stays sync):
+```python
+self._git_transaction = git_layer.begin(
+    repo_path=self._config.git_layer.repo_path,
+    message="Console transaction"
+)
+self._git_transaction.__enter__()
+```
 
-Console creates AI-DB instances directly rather than using an API server (which doesn't exist).
+### 2. Missing Transaction Adapter
 
-### 3. Frontend Path Handling
+**Issue**: Console passes Git-Layer transaction directly to AI-DB.
 
-Console reports frontend output paths but doesn't handle the static file serving aspect.
+**Current**:
+```python
+result = await self._ai_db.execute(
+    query=query,
+    permissions=permissions,
+    transaction=self._git_transaction  # Git-Layer Transaction
+)
+```
+
+**Needed**: Adapter to convert Git-Layer Transaction to AI-DB's expected TransactionContext.
+
+### 3. No operation_complete() Calls
+
+**Issue**: Git-Layer expects `operation_complete()` after each operation, but Console never calls it.
+
+**Git-Layer Design**: Each operation should create a commit in the transaction branch.
+
+**Console Behavior**: Only commits at transaction end.
+
+**Impact**: Loss of granular operation history.
+
+### 4. Frontend Path Configuration
+
+**Issue**: Console has no way to configure where frontends are served from.
+
+**Current**: Reports `result.output_path` but doesn't handle serving.
+
+**Needed**: Configuration for frontend deployment/serving strategy.
+
+## Integration Gaps Found
+
+### 1. Permission Inference Differences
+
+**MCP Server**: Complex pattern matching to infer permissions
+**Console**: Simple keyword-based detection
+**Risk**: Same query might get different permissions
+
+### 2. Error Handling Philosophy
+
+**AI-DB**: 3 retries with AI attempting to fix errors
+**AI-Frontend**: 5 iterations max
+**Console**: No retry logic, just displays errors
+**Git-Layer**: Preserves failed states in branches
+
+### 3. Compiled Query Execution
+
+**AI-DB**: Returns `compiled_plan` in results
+**Console**: Mentions saving but doesn't implement storage
+**MCP**: Has tool for executing compiled plans
+**Gap**: No shared compiled plan storage mechanism
+
+### 4. Environment Variable Conflicts
+
+**Console Sets**:
+- `AI_DB_API_BASE`
+- `AI_DB_API_KEY` 
+- `AI_DB_MODEL`
+
+**AI-DB Expects**: Same variables (good)
+
+**AI-Frontend Issue**: Needs API server URL but no env var defined
+
+## My Unresolved Questions (Console)
+
+1. **Async Git-Layer**: How do I properly integrate with synchronous Git-Layer in my async code?
+
+2. **Transaction Adapter**: Should Console create the adapter between Git-Layer and AI-DB interfaces, or should this be in AI-DB?
+
+3. **API Server**: Should Console be responsible for starting an AI-DB API server for frontends?
+
+4. **Frontend Serving**: How should generated frontends be served to users?
+
+5. **Compiled Plans**: Where should compiled query plans be stored for reuse?
+
+6. **Schema Caching**: Should Console cache schemas between queries for performance?
+
+7. **Progress Feedback**: How to show progress for long Claude Code operations?
+
+8. **Export Formats**: Console supports CSV export but AI-DB returns Python objects - need conversion logic.
 
 ## Recommendations for Supervisor
 
-1. **Create AI-DB API Server**: New component to bridge AI-DB library to HTTP
-2. **Standardize Interfaces**: Create interface definitions all projects must follow
-3. **Unify Configuration**: Single configuration schema for the entire system
-4. **Clarify Git-Layer Async**: Determine if async support exists or needs adding
-5. **Resolve Schema Format**: Pick one format and stick to it
-6. **Document File Structure**: Create canonical file structure documentation
-7. **Integration Tests**: Need integration tests to catch these issues
-8. **API Documentation**: Create OpenAPI specs for all HTTP interfaces
+### Immediate Fixes Needed
 
-## Priority Order
+1. **Create AI-DB API Server**: New component to wrap AI-DB library
+2. **Resolve Async/Sync**: Either make Git-Layer async or add sync support to consumers
+3. **Standardize Interfaces**: Create canonical TransactionContext interface
+4. **Fix Schema Format**: Add JSON Schema output to AI-DB
+5. **Create Adapters**: Bridge components with different interfaces
 
-1. **Critical**: Missing API server (blocks AI-Frontend)
-2. **High**: Transaction context interface mismatch
-3. **High**: Schema format incompatibility
-4. **Medium**: Configuration management
-5. **Medium**: Async/sync clarity
-6. **Low**: Chrome MCP integration
-7. **Low**: Semantic documentation standards
+### Console-Specific Actions
+
+1. **Fix Git-Layer Integration**: Use proper sync calls or wait for async support
+2. **Add Transaction Adapter**: Convert between Git-Layer and AI-DB interfaces  
+3. **Implement operation_complete()**: Call after each database operation
+4. **Add API Server Config**: For frontend communication
+5. **Implement Compiled Plan Storage**: For query reuse
+
+### System-Wide Needs
+
+1. **Integration Tests**: Current unit tests don't catch interface mismatches
+2. **Docker Compose**: For full system testing with all components
+3. **Shared Type Definitions**: Common package with interfaces
+4. **Configuration Schema**: Unified config for entire system
+5. **Deployment Strategy**: How components discover each other
+
+## Priority Order for Console
+
+1. **Critical**: Fix async/sync Git-Layer usage (blocks everything)
+2. **Critical**: Add transaction adapter (blocks AI-DB integration)
+3. **High**: Support AI-DB API server config (blocks frontend testing)
+4. **Medium**: Implement operation_complete() calls
+5. **Low**: Add compiled plan storage
+6. **Low**: Implement CSV export conversion
+
+## Notes for Other Agents
+
+- Console is the primary user interface - all user interactions flow through it
+- Console maintains conversation history and session state
+- Console handles output formatting for all query results
+- Console provides transaction status visualization
+- Console implements safety features (destructive operation confirmation)
+- Console expects all components to be pip-installable
