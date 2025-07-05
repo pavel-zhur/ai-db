@@ -1,0 +1,65 @@
+[tool.poetry]
+name = "ai-db"
+version = "0.1.0"
+description = "An AI-native database engine that interprets natural language queries"
+authors = ["AI-DB Team"]
+readme = "README.md"
+packages = [{include = "ai_db", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyyaml = "^6.0"
+jsonschema = "^4.20.0"
+langchain = "^0.1.0"
+langchain-openai = "^0.0.5"
+dependency-injector = "^4.41.0"
+aiofiles = "^23.2.1"
+RestrictedPython = "^7.0"
+pydantic = "^2.5.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+mypy = "^1.7.0"
+black = "^23.11.0"
+ruff = "^0.1.6"
+types-pyyaml = "^6.0.12"
+types-aiofiles = "^23.2.0"
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = ["E", "F", "B", "I", "N", "UP", "S", "A", "C", "DTZ", "T", "W", "RUF"]
+ignore = ["S101"]  # Allow assert in tests
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/ai_db"]
+branch = true
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

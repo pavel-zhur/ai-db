@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  ai-db-mcp:
+    build:
+      context: .
+      target: ai-db-server
+    environment:
+      - AI_DB_USE_MOCKS=true  # Set to false when real implementations are available
+      - AI_DB_LOG_LEVEL=INFO
+      - AI_DB_LOG_FORMAT=json
+      - AI_DB_GIT_REPO_PATH=/data
+    volumes:
+      - ai-db-data:/data
+    stdin_open: true
+    tty: true
+
+  ai-frontend-mcp:
+    build:
+      context: .
+      target: ai-frontend-server
+    environment:
+      - AI_FRONTEND_USE_MOCKS=true  # Set to false when real implementations are available
+      - AI_FRONTEND_LOG_LEVEL=INFO
+      - AI_FRONTEND_LOG_FORMAT=json
+      - AI_FRONTEND_GIT_REPO_PATH=/frontend
+    volumes:
+      - ai-frontend-data:/frontend
+    stdin_open: true
+    tty: true
+
+volumes:
+  ai-db-data:
+  ai-frontend-data:

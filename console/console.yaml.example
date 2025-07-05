@@ -1,0 +1,51 @@
+# Example configuration file for Console
+# Copy to console.yaml and modify as needed
+
+ai_db:
+  # OpenAI-compatible API endpoint
+  api_base: https://api.openai.com/v1
+  
+  # API key (can also use AI_DB_API_KEY env var)
+  api_key: your-api-key-here
+  
+  # Model to use for AI-DB operations
+  model: gpt-4
+  
+  # Maximum iterations for AI to attempt operations
+  max_iterations: 5
+  
+  # Timeout for AI operations
+  timeout_seconds: 300
+
+ai_frontend:
+  # Path to Claude Code CLI executable
+  claude_code_path: claude
+  
+  # Maximum iterations for frontend generation
+  max_iterations: 5
+  
+  # Timeout for frontend generation
+  timeout_seconds: 300
+
+git_layer:
+  # Path to Git repository for data storage
+  repo_path: ./data
+
+console:
+  # Log file for application logs
+  log_file: console.log
+  
+  # Trace file for conversation history
+  trace_file: console_trace.log
+  
+  # Enable debug mode (verbose logging to console)
+  debug_mode: false
+  
+  # Default output format: table, json, or yaml
+  default_output_format: table
+  
+  # Maximum width for table output
+  table_max_width: 120
+  
+  # Page size for large result sets
+  page_size: 50
