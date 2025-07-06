@@ -26,6 +26,10 @@ This document outlines Python-specific coding standards for this project.
 
 - Please don't do workarounds, do only best practices, and if something at hand doesn't work - analyze the reason, fix the root problem, or talk to me and let me decide.
 
+# Tests strategy
+
+- Tests should test the behavior, not the implementation details.
+
 # Exception Handling Guidelines
 
 ## Core Principle
