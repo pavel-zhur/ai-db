@@ -1,7 +1,6 @@
 """Configuration for MCP servers."""
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -48,18 +47,10 @@ class AIDBMCPConfig(MCPServerConfig):
 
     server_name: str = Field(default="ai-db-mcp-server", description="AI-DB MCP server name")
 
-    # AI-DB specific settings
+    # MCP-specific settings only (ai-db reads its own AI_DB_* environment variables)
     max_retry_attempts: int = Field(
-        default=3, gt=0, description="Maximum retry attempts for operations"
+        default=3, gt=0, description="Maximum retry attempts for MCP operations"
     )
-
-    # AI API settings (passed through to ai-db library)
-    ai_api_key: Optional[str] = Field(default=None, description="AI API key")
-    ai_api_base: str = Field(default="https://api.openai.com/v1", description="AI API base URL")
-    ai_model: str = Field(default="gpt-4", description="AI model to use")
-    ai_temperature: float = Field(default=0.1, ge=0.0, le=2.0, description="AI temperature")
-    ai_timeout_seconds: int = Field(default=60, gt=0, description="AI API timeout")
-    ai_max_retries: int = Field(default=3, ge=0, description="AI API max retries")
 
 
 class AIFrontendMCPConfig(MCPServerConfig):
@@ -77,19 +68,7 @@ class AIFrontendMCPConfig(MCPServerConfig):
         default="ai-frontend-mcp-server", description="AI-Frontend MCP server name"
     )
 
-    # AI-Frontend specific settings
-    claude_code_timeout: int = Field(
-        default=600, gt=0, description="Claude Code timeout in seconds"
+    # MCP-specific settings only (ai-frontend reads its own AI_FRONTEND_* environment variables)
+    max_retry_attempts: int = Field(
+        default=3, gt=0, description="Maximum retry attempts for MCP operations"
     )
-    claude_code_docker_image: str = Field(
-        default="anthropics/claude-code:latest", description="Claude Code Docker image"
-    )
-    max_iterations: int = Field(default=5, gt=0, description="Maximum generation iterations")
-    retry_attempts: int = Field(default=2, ge=0, description="Retry attempts for operations")
-
-    # Frontend generation settings (passed through to ai-frontend library)
-    api_base_url: str = Field(
-        default="http://localhost:8000", description="API base URL for generated frontend"
-    )
-    use_material_ui: bool = Field(default=True, description="Use Material-UI in generated frontend")
-    typescript_strict: bool = Field(default=True, description="Use strict TypeScript compilation")

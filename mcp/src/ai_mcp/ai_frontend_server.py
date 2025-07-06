@@ -64,16 +64,8 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
 
         logger.info("Using real AI-Frontend and Git-Layer implementations")
 
-        # Configure AI-Frontend
-        ai_frontend_config = AiFrontendConfig(
-            claude_code_docker_image=config.claude_code_docker_image,
-            max_iterations=config.max_iterations,
-            timeout_seconds=config.claude_code_timeout,
-            retry_attempts=config.retry_attempts,
-            api_base_url=config.api_base_url,
-            use_material_ui=config.use_material_ui,
-            typescript_strict=config.typescript_strict,
-        )
+        # Let AI-Frontend read its own configuration from AI_FRONTEND_* environment variables
+        ai_frontend_config = AiFrontendConfig()
         ai_frontend = AiFrontend(ai_frontend_config)
 
         # Git-layer is used through its begin() function - no instance needed

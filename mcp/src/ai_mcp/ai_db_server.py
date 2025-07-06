@@ -69,15 +69,8 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
 
         logger.info("Using real AI-DB and Git-Layer implementations")
 
-        # Configure AI-DB
-        ai_db_config = AIDBConfig(
-            api_key=config.ai_api_key,
-            api_base=config.ai_api_base,
-            model=config.ai_model,
-            temperature=config.ai_temperature,
-            timeout_seconds=config.ai_timeout_seconds,
-            max_retries=config.ai_max_retries,
-        )
+        # Let AI-DB read its own configuration from AI_DB_* environment variables
+        ai_db_config = AIDBConfig()
         ai_db = AIDB(ai_db_config)
 
         # Git-layer is used through its begin() function - no instance needed

@@ -114,7 +114,7 @@ async with self._create_transaction("Operation description") as transaction:
 
 ### Library Integration Strategy
 
-**Mock vs Real Libraries**:
+**Independent Configuration Pattern**:
 
 ```python
 if config.use_mocks:
@@ -123,11 +123,23 @@ if config.use_mocks:
     git_layer_module = MockGitLayer(config.repo_path)
 else:
     # Use real libraries for production
+    # Let each library read its own environment variables independently
     from ai_db import AIDB
+    from ai_db.config import AIDBConfig
     import git_layer
+    
+    # ai-db reads AI_DB_* environment variables
+    ai_db_config = AIDBConfig()  # Reads AI_DB_API_KEY, AI_DB_MODEL, etc.
     ai_db = AIDB(ai_db_config)
+    
     git_layer_module = git_layer
 ```
+
+**Benefits of Independent Configuration**:
+- No environment variable conflicts between MCP and libraries
+- Libraries maintain their own configuration standards
+- Clear separation of concerns (MCP settings vs library settings)
+- Users can configure ai-db and ai-frontend independently of MCP
 
 ### Tool Implementation Pattern
 
@@ -168,6 +180,23 @@ class ExampleTool(AIDBTool):
 **Solution**: Renamed schema fields:
 - `schema` → `result_schema` in QueryResponse
 - `schema` → `db_schema` in SchemaResponse
+
+### Environment Variable Configuration Conflicts
+
+**Problem**: Initial implementation created configuration conflicts by passing MCP environment variables to ai-db and ai-frontend libraries instead of letting them read their own independent environment variables.
+
+**Solution**: Implemented independent configuration pattern:
+- MCP servers use `AI_DB_MCP_*` and `AI_FRONTEND_MCP_*` prefixes for their own settings
+- ai-db library reads `AI_DB_*` environment variables independently  
+- ai-frontend library reads `AI_FRONTEND_*` environment variables independently
+- Removed duplicate configuration fields from MCP config classes
+- Libraries instantiate with `AIDBConfig()` and `AiFrontendConfig()` (no parameters)
+
+**Benefits**:
+- No environment variable namespace conflicts
+- Libraries maintain configuration independence
+- Clear separation of MCP vs library concerns
+- Easier maintenance and debugging
 
 ### MCP Server API Changes
 

@@ -83,26 +83,37 @@ asyncio.run(main())
 
 Configuration uses Pydantic BaseSettings with environment variable support:
 
-### AI-DB Server Environment Variables
+### Environment Variables
 
-- `AI_DB_LOG_LEVEL` - Logging level (default: INFO)
-- `AI_DB_LOG_FORMAT` - Log format: "json" or "console" (default: json)
-- `AI_DB_USE_MOCKS` - Use mock implementations (default: false)
-- `AI_DB_GIT_REPO_PATH` - Git repository path (default: /workspace/data)
-- `AI_DB_AI_API_KEY` - AI API key for query processing
-- `AI_DB_AI_API_BASE` - AI API base URL (default: https://api.openai.com/v1)
-- `AI_DB_AI_MODEL` - AI model to use (default: gpt-4)
-- `AI_DB_AI_TEMPERATURE` - AI temperature setting (default: 0.1)
+The MCP servers use **independent environment variable namespaces** to avoid conflicts:
 
-### AI-Frontend Server Environment Variables
+#### MCP Server Settings
+- `AI_DB_MCP_LOG_LEVEL` - AI-DB MCP server logging level (default: INFO)
+- `AI_DB_MCP_LOG_FORMAT` - AI-DB MCP log format: "json" or "console" (default: json)
+- `AI_DB_MCP_USE_MOCKS` - Use mock implementations for AI-DB MCP (default: false)
+- `AI_DB_MCP_REPO_PATH` - Git repository path for AI-DB MCP (default: /workspace/data)
 
-- `AI_FRONTEND_LOG_LEVEL` - Logging level (default: INFO)
-- `AI_FRONTEND_LOG_FORMAT` - Log format: "json" or "console" (default: json)
-- `AI_FRONTEND_USE_MOCKS` - Use mock implementations (default: false)
-- `AI_FRONTEND_GIT_REPO_PATH` - Git repository path (default: /workspace/frontend)
-- `AI_FRONTEND_CLAUDE_CODE_DOCKER_IMAGE` - Docker image for Claude Code (default: anthropic/claude-code)
+- `AI_FRONTEND_MCP_LOG_LEVEL` - AI-Frontend MCP server logging level (default: INFO)
+- `AI_FRONTEND_MCP_LOG_FORMAT` - AI-Frontend MCP log format: "json" or "console" (default: json)
+- `AI_FRONTEND_MCP_USE_MOCKS` - Use mock implementations for AI-Frontend MCP (default: false)
+- `AI_FRONTEND_MCP_REPO_PATH` - Git repository path for AI-Frontend MCP (default: /workspace/frontend)
+
+#### AI-DB Library Settings (Independent)
+The ai-db library reads its own configuration with `AI_DB_` prefix:
+- `AI_DB_API_KEY` - AI API key for query processing
+- `AI_DB_API_BASE` - AI API base URL (default: https://api.openai.com/v1)
+- `AI_DB_MODEL` - AI model to use (default: gpt-4)
+- `AI_DB_TEMPERATURE` - AI temperature setting (default: 0.1)
+- `AI_DB_TIMEOUT_SECONDS` - AI API timeout (default: 30)
+- `AI_DB_MAX_RETRIES` - AI API max retries (default: 3)
+
+#### AI-Frontend Library Settings (Independent)
+The ai-frontend library reads its own configuration with `AI_FRONTEND_` prefix:
+- `AI_FRONTEND_CLAUDE_CODE_DOCKER_IMAGE` - Docker image (default: anthropics/claude-code:latest)
 - `AI_FRONTEND_MAX_ITERATIONS` - Max generation iterations (default: 5)
-- `AI_FRONTEND_CLAUDE_CODE_TIMEOUT` - Timeout in seconds (default: 600)
+- `AI_FRONTEND_TIMEOUT_SECONDS` - Timeout in seconds (default: 300)
+- `AI_FRONTEND_USE_MATERIAL_UI` - Use Material-UI (default: true)
+- `AI_FRONTEND_TYPESCRIPT_STRICT` - Use strict TypeScript (default: true)
 
 ## Development
 
@@ -184,7 +195,9 @@ Example Claude Desktop configuration:
       "args": ["run", "python", "-m", "ai_mcp.ai_db_server"],
       "cwd": "/workspace/mcp",
       "env": {
-        "AI_DB_USE_MOCKS": "true"
+        "AI_DB_MCP_USE_MOCKS": "true",
+        "AI_DB_API_KEY": "your-openai-api-key",
+        "AI_DB_MODEL": "gpt-4"
       }
     },
     "ai-frontend": {
@@ -192,7 +205,8 @@ Example Claude Desktop configuration:
       "args": ["run", "python", "-m", "ai_mcp.ai_frontend_server"],
       "cwd": "/workspace/mcp",
       "env": {
-        "AI_FRONTEND_USE_MOCKS": "true"
+        "AI_FRONTEND_MCP_USE_MOCKS": "true",
+        "AI_FRONTEND_MAX_ITERATIONS": "3"
       }
     }
   }
