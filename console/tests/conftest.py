@@ -17,8 +17,18 @@ from console.output_formatter import OutputFormatter
 def test_config() -> Config:
     """Test configuration."""
     return Config(
-        ai_db=AIDBConfig(api_base="http://test-api", api_key="test-key", model="test-model"),
-        ai_frontend=AIFrontendConfig(claude_code_path="test-claude"),
+        ai_db=AIDBConfig(
+            api_base="http://test-api",
+            api_key="test-key", 
+            model="test-model",
+            temperature=0.1,
+            max_retries=2,
+            timeout_seconds=15.0
+        ),
+        ai_frontend=AIFrontendConfig(
+            claude_code_path="test-claude",
+            api_base_url="http://test-api"
+        ),
         git_layer=GitLayerConfig(repo_path="./test-data"),
         console=ConsoleConfig(log_file="test.log", trace_file="test_trace.log", debug_mode=False),
     )

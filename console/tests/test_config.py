@@ -16,7 +16,8 @@ def test_default_config() -> None:
 
     assert config.ai_db.api_base == "https://api.openai.com/v1"
     assert config.ai_db.model == "gpt-4"
-    assert config.ai_db.max_iterations == 5
+    assert config.ai_db.temperature == 0.0
+    assert config.ai_db.max_retries == 3
 
     assert config.ai_frontend.claude_code_path == "claude"
     assert config.ai_frontend.max_iterations == 5
@@ -61,7 +62,7 @@ def test_environment_override() -> None:
         "AI_DB_API_BASE": "http://env-api",
         "AI_DB_API_KEY": "env-key",
         "AI_DB_MODEL": "env-model",
-        "AI_DB_MAX_ITERATIONS": "10",
+        "AI_DB_MAX_RETRIES": "5",
         "CONSOLE_DEBUG": "true",
         "CONSOLE_LOG_FILE": "env.log",
     }
@@ -76,7 +77,7 @@ def test_environment_override() -> None:
         assert config.ai_db.api_base == "http://env-api"
         assert config.ai_db.api_key == "env-key"
         assert config.ai_db.model == "env-model"
-        assert config.ai_db.max_iterations == 10
+        assert config.ai_db.max_retries == 5
         assert config.console.debug_mode is True
         assert config.console.log_file == "env.log"
     finally:
@@ -94,6 +95,6 @@ def test_config_validation() -> None:
         Config(console=ConsoleConfig(default_output_format="invalid"))
 
     # Test valid configurations
-    config = Config(ai_db=AIDBConfig(max_iterations=3), console=ConsoleConfig(page_size=100))
-    assert config.ai_db.max_iterations == 3
+    config = Config(ai_db=AIDBConfig(max_retries=5), console=ConsoleConfig(page_size=100))
+    assert config.ai_db.max_retries == 5
     assert config.console.page_size == 100

@@ -11,21 +11,33 @@ ai_db:
   # Model to use for AI-DB operations
   model: gpt-4
   
-  # Maximum iterations for AI to attempt operations
-  max_iterations: 5
+  # Temperature for AI model (0.0 = more deterministic)
+  temperature: 0.0
   
-  # Timeout for AI operations
-  timeout_seconds: 300
+  # Maximum retries for failed operations
+  max_retries: 3
+  
+  # Timeout for AI operations (seconds)
+  timeout_seconds: 30.0
 
 ai_frontend:
   # Path to Claude Code CLI executable
   claude_code_path: claude
   
+  # Docker image for Claude Code (if using Docker)
+  claude_code_docker_image: anthropics/claude-code:latest
+  
   # Maximum iterations for frontend generation
   max_iterations: 5
   
-  # Timeout for frontend generation
+  # Timeout for frontend generation (seconds)
   timeout_seconds: 300
+  
+  # Number of retry attempts for failed operations
+  retry_attempts: 2
+  
+  # API base URL for frontend to connect to ai-hub
+  api_base_url: http://localhost:8000
 
 git_layer:
   # Path to Git repository for data storage

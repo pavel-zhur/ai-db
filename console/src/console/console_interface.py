@@ -194,8 +194,11 @@ class ConsoleInterface:
 
             ai_frontend_config = AiFrontendConfig(
                 claude_code_path=self._config.ai_frontend.claude_code_path,
+                claude_code_docker_image=self._config.ai_frontend.claude_code_docker_image,
                 max_iterations=self._config.ai_frontend.max_iterations,
                 timeout_seconds=self._config.ai_frontend.timeout_seconds,
+                retry_attempts=self._config.ai_frontend.retry_attempts,
+                api_base_url=self._config.ai_frontend.api_base_url,
             )
             self._ai_frontend = AiFrontend(ai_frontend_config)
 

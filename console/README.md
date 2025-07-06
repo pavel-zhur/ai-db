@@ -118,13 +118,17 @@ ai_db:
   api_base: https://api.openai.com/v1
   api_key: your-api-key
   model: gpt-4
-  max_iterations: 5
-  timeout_seconds: 300
+  temperature: 0.0
+  max_retries: 3
+  timeout_seconds: 30.0
 
 ai_frontend:
   claude_code_path: claude
+  claude_code_docker_image: anthropics/claude-code:latest
   max_iterations: 5
   timeout_seconds: 300
+  retry_attempts: 2
+  api_base_url: http://localhost:8000
 
 git_layer:
   repo_path: ./data
@@ -145,10 +149,13 @@ console:
 export AI_DB_API_BASE=https://api.openai.com/v1
 export AI_DB_API_KEY=your-api-key
 export AI_DB_MODEL=gpt-4
-export AI_DB_MAX_ITERATIONS=5
+export AI_DB_TEMPERATURE=0.0
+export AI_DB_MAX_RETRIES=3
 
 # AI-Frontend settings
 export AI_FRONTEND_CLAUDE_CODE_PATH=claude
+export AI_FRONTEND_CLAUDE_CODE_DOCKER_IMAGE=anthropics/claude-code:latest
+export AI_FRONTEND_API_BASE_URL=http://localhost:8000
 
 # Git-Layer settings
 export GIT_LAYER_REPO_PATH=./data
