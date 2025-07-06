@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
 
 
 class OutputFormat(Enum):
     """Output format for query results."""
+
     TABLE = "table"
     JSON = "json"
     YAML = "yaml"
@@ -15,6 +15,7 @@ class OutputFormat(Enum):
 
 class CommandType(Enum):
     """Type of console command."""
+
     QUERY = "query"
     SCHEMA_MODIFY = "schema_modify"
     DATA_MODIFY = "data_modify"
@@ -32,27 +33,29 @@ class CommandType(Enum):
 @dataclass
 class ConversationEntry:
     """Entry in conversation history."""
+
     timestamp: datetime
     user_input: str
-    response: Optional[str] = None
-    error: Optional[str] = None
-    command_type: Optional[CommandType] = None
+    response: str | None = None
+    error: str | None = None
+    command_type: CommandType | None = None
 
 
 @dataclass
 class SessionState:
     """Current session state."""
-    conversation_history: List[ConversationEntry]
+
+    conversation_history: list[ConversationEntry]
     transaction_active: bool = False
-    transaction_id: Optional[str] = None
+    transaction_id: str | None = None
     current_output_format: OutputFormat = OutputFormat.TABLE
-    
+
     def add_entry(
         self,
         user_input: str,
-        response: Optional[str] = None,
-        error: Optional[str] = None,
-        command_type: Optional[CommandType] = None
+        response: str | None = None,
+        error: str | None = None,
+        command_type: CommandType | None = None,
     ) -> None:
         """Add entry to conversation history."""
         entry = ConversationEntry(
@@ -60,6 +63,6 @@ class SessionState:
             user_input=user_input,
             response=response,
             error=error,
-            command_type=command_type
+            command_type=command_type,
         )
         self.conversation_history.append(entry)

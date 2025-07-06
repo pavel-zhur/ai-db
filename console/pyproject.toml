@@ -13,7 +13,7 @@ repository = "https://github.com/pavel-zhur/ai-db"
 packages = [{include = "console", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = ">=3.13,<3.14"
 ai-shared = {path = "../ai-shared", develop = true}
 ai-db = {path = "../ai-db", develop = true}
 ai-frontend = {path = "../ai-frontend", develop = true}
@@ -27,12 +27,15 @@ tabulate = "^0.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4"
-pytest-asyncio = "^0.24"
+pytest-asyncio = "^1.0"
 pytest-cov = "^6.0"
 pytest-mock = "^3.14"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
+types-PyYAML = "^6.0"
+types-tabulate = "^0.9"
+types-setuptools = "^70.0"
 
 [tool.poetry.scripts]
 console = "console.main:main"
@@ -64,4 +67,6 @@ target-version = ["py313"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF"]

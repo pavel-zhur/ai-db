@@ -1,61 +1,51 @@
 """Main console interface implementation."""
 
-import asyncio
+import contextlib
 import logging
-from pathlib import Path
-from typing import Optional
 
+import git_layer
+from ai_db import AIDB, PermissionLevel
+from ai_frontend import AiFrontend
 from dependency_injector import containers, providers
+from git_layer import Transaction
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 
-from ai_db import AIDB, PermissionLevel
-from ai_frontend import AiFrontend
-from git_layer import GitTransaction
-
 from .command_parser import CommandParser
 from .config import Config
-from .logging import TraceLogger, setup_logging
+from .logging import TraceLogger
 from .models import CommandType, OutputFormat, SessionState
 from .output_formatter import OutputFormatter
-
 
 logger = logging.getLogger(__name__)
 
 
 class Container(containers.DeclarativeContainer):
     """Dependency injection container."""
-    
+
     config = providers.Singleton(Config)
-    
+
     console = providers.Singleton(Console)
-    
-    trace_logger = providers.Singleton(
-        TraceLogger,
-        trace_file=config.provided.console.trace_file
-    )
-    
+
+    trace_logger = providers.Singleton(TraceLogger, trace_file=config.provided.console.trace_file)
+
     command_parser = providers.Singleton(CommandParser)
-    
+
     output_formatter = providers.Singleton(
-        OutputFormatter,
-        console=console,
-        max_width=config.provided.console.table_max_width
+        OutputFormatter, console=console, max_width=config.provided.console.table_max_width
     )
-    
+
     session_state = providers.Singleton(
-        SessionState,
-        conversation_history=[],
-        current_output_format=OutputFormat.TABLE
+        SessionState, conversation_history=[], current_output_format=OutputFormat.TABLE
     )
 
 
 class ConsoleInterface:
     """Main interactive console interface."""
-    
+
     def __init__(
         self,
         config: Config,
@@ -63,7 +53,7 @@ class ConsoleInterface:
         trace_logger: TraceLogger,
         command_parser: CommandParser,
         output_formatter: OutputFormatter,
-        session_state: SessionState
+        session_state: SessionState,
     ):
         self._config = config
         self._console = console
@@ -71,14 +61,14 @@ class ConsoleInterface:
         self._command_parser = command_parser
         self._output_formatter = output_formatter
         self._session_state = session_state
-        self._git_transaction: Optional[GitTransaction] = None
-        self._ai_db: Optional[AIDB] = None
-        self._ai_frontend: Optional[AiFrontend] = None
-        
+        self._git_transaction: Transaction | None = None
+        self._ai_db: AIDB | None = None
+        self._ai_frontend: AiFrontend | None = None
+
     async def run(self) -> None:
         """Run the interactive console."""
         self._show_welcome()
-        
+
         try:
             while True:
                 try:
@@ -87,39 +77,36 @@ class ConsoleInterface:
                         prompt = "[yellow]🔄 TX[/yellow] > "
                     else:
                         prompt = "> "
-                        
+
                     # Get user input
                     user_input = Prompt.ask(prompt, console=self._console)
                     if not user_input.strip():
                         continue
-                        
+
                     # Log input
                     self._trace_logger.log_input(user_input)
-                    
+
                     # Parse command
                     cmd_type, params = self._command_parser.parse(user_input)
-                    
+
                     # Handle command
                     await self._handle_command(cmd_type, params, user_input)
-                    
+
                 except KeyboardInterrupt:
                     self._console.print("\n[yellow]Use 'exit' to quit[/yellow]")
                 except Exception as e:
-                    error_msg = f"Unexpected error: {str(e)}"
+                    error_msg = f"Unexpected error: {e!s}"
                     self._output_formatter.format_error(error_msg)
                     self._trace_logger.log_error(error_msg)
                     logger.exception("Unexpected error in console loop")
-                    
+
         except KeyboardInterrupt:
             pass
         finally:
             await self._cleanup()
-            
+
     async def _handle_command(
-        self,
-        cmd_type: CommandType,
-        params: Optional[str],
-        user_input: str
+        self, cmd_type: CommandType, params: str | None, user_input: str
     ) -> None:
         """Handle parsed command."""
         try:
@@ -127,106 +114,105 @@ class ConsoleInterface:
                 if self._session_state.transaction_active:
                     if Confirm.ask(
                         "[yellow]Transaction is active. Rollback and exit?[/yellow]",
-                        console=self._console
+                        console=self._console,
                     ):
                         await self._rollback_transaction()
                     else:
                         return
                 raise KeyboardInterrupt
-                
+
             elif cmd_type == CommandType.HELP:
                 self._show_help()
-                
+
             elif cmd_type == CommandType.OUTPUT_FORMAT:
                 self._set_output_format(params)
-                
+
             elif cmd_type == CommandType.TRANSACTION_BEGIN:
                 await self._begin_transaction()
-                
+
             elif cmd_type == CommandType.TRANSACTION_COMMIT:
                 await self._commit_transaction()
-                
+
             elif cmd_type == CommandType.TRANSACTION_ROLLBACK:
                 await self._rollback_transaction()
-                
+
             elif cmd_type == CommandType.FRONTEND_GENERATE:
                 await self._generate_frontend(user_input)
-                
+
             elif cmd_type in [
                 CommandType.QUERY,
                 CommandType.SCHEMA_MODIFY,
                 CommandType.DATA_MODIFY,
-                CommandType.VIEW_MODIFY
+                CommandType.VIEW_MODIFY,
             ]:
                 # Check for destructive operations
-                if cmd_type != CommandType.QUERY:
-                    if self._command_parser.detect_destructive_operation(user_input):
-                        if not Confirm.ask(
-                            "[red]This appears to be a destructive operation. Continue?[/red]",
-                            console=self._console
-                        ):
-                            self._output_formatter.format_info("Operation cancelled")
-                            return
-                            
+                if (
+                    cmd_type != CommandType.QUERY
+                    and self._command_parser.detect_destructive_operation(user_input)
+                    and not Confirm.ask(
+                        "[red]This appears to be a destructive operation. Continue?[/red]",
+                        console=self._console,
+                    )
+                ):
+                    self._output_formatter.format_info("Operation cancelled")
+                    return
+
                 await self._execute_db_query(cmd_type, user_input)
-                
+
             elif cmd_type == CommandType.EXPORT:
                 await self._export_data(params)
-                
+
             else:
                 self._output_formatter.format_error(f"Unknown command type: {cmd_type}")
-                
+
         except Exception as e:
             error_msg = str(e)
             self._output_formatter.format_error(error_msg)
             self._trace_logger.log_error(error_msg)
             self._session_state.add_entry(
-                user_input=user_input,
-                error=error_msg,
-                command_type=cmd_type
+                user_input=user_input, error=error_msg, command_type=cmd_type
             )
-            
+
     async def _begin_transaction(self) -> None:
         """Begin a new transaction."""
         if self._session_state.transaction_active:
             self._output_formatter.format_warning("Transaction already active")
             return
-            
+
         try:
-            self._git_transaction = GitTransaction(
-                repo_path=self._config.git_layer.repo_path,
-                message="Console transaction"
+            self._git_transaction = await git_layer.begin(
+                repo_path=self._config.git_layer.repo_path, message="Console transaction"
             )
-            await self._git_transaction.__aenter__()
             self._session_state.transaction_active = True
-            self._session_state.transaction_id = "current"
-            
-            # Initialize AI-DB with transaction
+            self._session_state.transaction_id = self._git_transaction.id
+
+            # Initialize AI-DB (no transaction needed here - passed in execute calls)
             self._ai_db = AIDB()
-            
+
             # Initialize AI-Frontend
             from ai_frontend.config import AiFrontendConfig
+
             ai_frontend_config = AiFrontendConfig(
                 claude_code_path=self._config.ai_frontend.claude_code_path,
                 max_iterations=self._config.ai_frontend.max_iterations,
-                timeout_seconds=self._config.ai_frontend.timeout_seconds
+                timeout_seconds=self._config.ai_frontend.timeout_seconds,
             )
             self._ai_frontend = AiFrontend(ai_frontend_config)
-            
+
             self._output_formatter.format_success("Transaction started")
             self._trace_logger.log_output("Transaction started")
-            
-        except Exception as e:
+
+        except Exception:
             self._session_state.transaction_active = False
             self._session_state.transaction_id = None
             raise
-            
+
     async def _commit_transaction(self) -> None:
         """Commit the current transaction."""
-        if not self._session_state.transaction_active:
+        if not self._session_state.transaction_active or self._git_transaction is None:
             self._output_formatter.format_warning("No active transaction")
             return
-            
+
         try:
             await self._git_transaction.__aexit__(None, None, None)
             self._session_state.transaction_active = False
@@ -234,49 +220,41 @@ class ConsoleInterface:
             self._git_transaction = None
             self._ai_db = None
             self._ai_frontend = None
-            
+
             self._output_formatter.format_success("Transaction committed")
             self._trace_logger.log_output("Transaction committed")
-            
+
         except Exception as e:
-            self._output_formatter.format_error(f"Failed to commit: {str(e)}")
+            self._output_formatter.format_error(f"Failed to commit: {e!s}")
             raise
-            
+
     async def _rollback_transaction(self) -> None:
         """Rollback the current transaction."""
-        if not self._session_state.transaction_active:
+        if not self._session_state.transaction_active or self._git_transaction is None:
             self._output_formatter.format_warning("No active transaction")
             return
-            
+
         try:
             # Force rollback by raising exception in context manager
-            await self._git_transaction.__aexit__(
-                Exception,
-                Exception("Manual rollback"),
-                None
-            )
+            await self._git_transaction.__aexit__(Exception, Exception("Manual rollback"), None)
             self._session_state.transaction_active = False
             self._session_state.transaction_id = None
             self._git_transaction = None
             self._ai_db = None
             self._ai_frontend = None
-            
+
             self._output_formatter.format_success("Transaction rolled back")
             self._trace_logger.log_output("Transaction rolled back")
-            
+
         except Exception as e:
-            self._output_formatter.format_error(f"Failed to rollback: {str(e)}")
+            self._output_formatter.format_error(f"Failed to rollback: {e!s}")
             raise
-            
-    async def _execute_db_query(
-        self,
-        cmd_type: CommandType,
-        query: str
-    ) -> None:
+
+    async def _execute_db_query(self, cmd_type: CommandType, query: str) -> None:
         """Execute database query."""
         if not self._session_state.transaction_active:
             await self._begin_transaction()
-            
+
         # Map command type to permission level
         permission_map = {
             CommandType.QUERY: PermissionLevel.SELECT,
@@ -285,80 +263,94 @@ class ConsoleInterface:
             CommandType.VIEW_MODIFY: PermissionLevel.VIEW_MODIFY,
         }
         permissions = permission_map[cmd_type]
-        
+
         # Show progress
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=self._console
+            console=self._console,
         ) as progress:
             task = progress.add_task("Executing query...", total=None)
-            
+
             try:
+                if self._ai_db is None or self._git_transaction is None:
+                    raise RuntimeError("AI-DB or transaction not initialized")
                 result = await self._ai_db.execute(
-                    query=query,
-                    permissions=permissions,
-                    transaction=self._git_transaction
+                    query=query, permissions=permissions, transaction=self._git_transaction
                 )
-                
+
                 progress.update(task, completed=True)
-                
+
                 # Format and display result
                 formatted = self._output_formatter.format_result(
                     data=result.data,
                     format_type=self._session_state.current_output_format,
                     title=None,
-                    ai_comment=result.ai_comment
+                    ai_comment=result.ai_comment,
                 )
-                
+
                 # Log success
                 self._trace_logger.log_output(f"Query executed: {formatted[:200]}...")
                 self._session_state.add_entry(
-                    user_input=query,
-                    response=formatted,
-                    command_type=cmd_type
+                    user_input=query, response=formatted, command_type=cmd_type
                 )
-                
+
                 # Save compiled plan if available
                 if result.compiled_plan:
                     self._output_formatter.format_info(
                         "Query compiled. Use compiled plan for better performance."
                     )
-                    
-            except Exception as e:
+
+            except Exception:
                 progress.update(task, completed=True)
                 raise
-                
+
     async def _generate_frontend(self, request: str) -> None:
         """Generate frontend using AI-Frontend."""
         if not self._session_state.transaction_active:
             await self._begin_transaction()
-            
+
         # Get current schema
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=self._console
+            console=self._console,
         ) as progress:
             task = progress.add_task("Generating frontend...", total=None)
-            
+
             try:
+                if (
+                    self._ai_db is None
+                    or self._ai_frontend is None
+                    or self._git_transaction is None
+                ):
+                    raise RuntimeError("AI-DB, AI-Frontend, or transaction not initialized")
+
                 # Get schema from AI-DB
                 schema_result = await self._ai_db.execute(
                     query="Show me the complete database schema",
                     permissions=PermissionLevel.SELECT,
-                    transaction=self._git_transaction
+                    transaction=self._git_transaction,
                 )
-                
+
+                # Extract schema data and ensure it's a dict
+                schema_data = schema_result.data
+                if isinstance(schema_data, dict):
+                    schema_dict = schema_data
+                else:
+                    # Convert to dict format if needed (schema_data can be None or any other type)
+                    schema_dict = {"schema": schema_data} if schema_data is not None else {}
+
                 # Generate frontend
                 result = await self._ai_frontend.generate_frontend(
                     request=request,
-                    schema=schema_result.data,
-                    transaction_context=self._git_transaction
+                    schema=schema_dict,
+                    transaction=self._git_transaction,
+                    project_name="console-frontend",
                 )
-                
+
                 progress.update(task, completed=True)
-                
+
                 if result.success:
                     self._output_formatter.format_success(
                         f"Frontend generated at: {result.output_path}"
@@ -366,24 +358,24 @@ class ConsoleInterface:
                     self._trace_logger.log_output(f"Frontend generated: {result.output_path}")
                 else:
                     raise Exception(result.error)
-                    
-            except Exception as e:
+
+            except Exception:
                 progress.update(task, completed=True)
                 raise
-                
-    async def _export_data(self, params: Optional[str]) -> None:
+
+    async def _export_data(self, params: str | None) -> None:
         """Export data to file."""
         if not params or "|" not in params:
             self._output_formatter.format_error("Invalid export syntax")
             return
-            
+
         query, filename = params.split("|", 1)
         query = query.strip()
         filename = filename.strip()
-        
+
         # Execute query
         await self._execute_db_query(CommandType.QUERY, query)
-        
+
         # Get last result
         if self._session_state.conversation_history:
             last_entry = self._session_state.conversation_history[-1]
@@ -393,13 +385,13 @@ class ConsoleInterface:
                         f.write(last_entry.response)
                     self._output_formatter.format_success(f"Exported to {filename}")
                 except Exception as e:
-                    self._output_formatter.format_error(f"Export failed: {str(e)}")
-                    
-    def _set_output_format(self, format_str: Optional[str]) -> None:
+                    self._output_formatter.format_error(f"Export failed: {e!s}")
+
+    def _set_output_format(self, format_str: str | None) -> None:
         """Set output format."""
         if not format_str:
             return
-            
+
         try:
             output_format = OutputFormat(format_str)
             self._session_state.current_output_format = output_format
@@ -407,11 +399,12 @@ class ConsoleInterface:
             self._trace_logger.log_output(f"Output format changed to: {format_str}")
         except ValueError:
             self._output_formatter.format_error(f"Invalid format: {format_str}")
-            
+
     def _show_welcome(self) -> None:
         """Show welcome message."""
         welcome = Panel(
-            Markdown("""# AI-DB Console
+            Markdown(
+                """# AI-DB Console
 
 Natural language database interface with AI-powered operations.
 
@@ -429,15 +422,17 @@ Natural language database interface with AI-powered operations.
 - "Show all users"
 - "Create a products table with id, name, and price"
 - "Generate a dashboard for customer management"
-"""),
+"""
+            ),
             title="Welcome",
-            border_style="blue"
+            border_style="blue",
         )
         self._console.print(welcome)
-        
+
     def _show_help(self) -> None:
         """Show help message."""
-        help_text = Markdown("""## Console Help
+        help_text = Markdown(
+            """## Console Help
 
 ### Basic Commands
 - **Natural language queries**: Just type what you want
@@ -464,15 +459,14 @@ Natural language database interface with AI-powered operations.
 - Destructive operations require confirmation
 - Use natural language for complex queries
 - The AI understands context from conversation history
-""")
+"""
+        )
         self._console.print(Panel(help_text, title="Help", border_style="green"))
-        
+
     async def _cleanup(self) -> None:
         """Clean up resources."""
         if self._session_state.transaction_active and self._git_transaction:
-            try:
+            with contextlib.suppress(Exception):
                 await self._rollback_transaction()
-            except Exception:
-                pass
-                
+
         self._console.print("\n[blue]Goodbye![/blue]")
