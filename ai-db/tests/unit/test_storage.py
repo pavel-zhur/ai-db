@@ -5,7 +5,8 @@ from pathlib import Path
 import yaml
 
 from ai_db.storage import YAMLStore, SchemaStore, ViewStore
-from ai_db.core.models import Table, Column, Constraint, ConstraintType, TransactionContext
+from ai_db.core.models import Table, Column, Constraint, ConstraintType
+from ai_shared.protocols import TransactionProtocol
 from ai_db.exceptions import StorageError
 
 
@@ -13,14 +14,14 @@ class TestYAMLStore:
     """Test YAML storage operations."""
     
     @pytest.mark.asyncio
-    async def test_read_empty_table(self, transaction_context: TransactionContext):
+    async def test_read_empty_table(self, transaction_context: TransactionProtocol):
         """Test reading a non-existent table returns empty list."""
         store = YAMLStore(transaction_context)
         data = await store.read_table("nonexistent")
         assert data == []
     
     @pytest.mark.asyncio
-    async def test_write_and_read_table(self, transaction_context: TransactionContext, sample_data):
+    async def test_write_and_read_table(self, transaction_context: TransactionProtocol, sample_data):
         """Test writing and reading table data."""
         store = YAMLStore(transaction_context)
         
@@ -35,7 +36,7 @@ class TestYAMLStore:
         assert data[2]["username"] == "charlie"
     
     @pytest.mark.asyncio
-    async def test_list_tables(self, transaction_context: TransactionContext):
+    async def test_list_tables(self, transaction_context: TransactionProtocol):
         """Test listing tables."""
         store = YAMLStore(transaction_context)
         
@@ -52,16 +53,17 @@ class TestYAMLStore:
         assert sorted(tables) == ["products", "users"]
     
     @pytest.mark.asyncio
-    async def test_write_escalation(self, transaction_context: TransactionContext):
+    async def test_write_escalation(self, transaction_context: TransactionProtocol):
         """Test write escalation."""
         store = YAMLStore(transaction_context)
-        original_dir = transaction_context.working_directory
         
         # Write should trigger escalation
         await store.write_table("test", [{"id": 1}])
         
-        assert transaction_context.is_write_escalated
-        assert transaction_context.working_directory != original_dir
+        # Verify write_escalation_required was called
+        transaction_context.write_escalation_required.assert_called_once()
+        # Verify operation_complete was called
+        transaction_context.operation_complete.assert_called()
 
 
 class TestSchemaStore:
@@ -70,7 +72,7 @@ class TestSchemaStore:
     @pytest.mark.asyncio
     async def test_save_and_load_table_schema(
         self, 
-        transaction_context: TransactionContext,
+        transaction_context: TransactionProtocol,
         sample_schema
     ):
         """Test saving and loading table schema."""
@@ -108,7 +110,7 @@ class TestSchemaStore:
         assert loaded_table.columns[0].nullable is False
     
     @pytest.mark.asyncio
-    async def test_semantic_documentation(self, transaction_context: TransactionContext):
+    async def test_semantic_documentation(self, transaction_context: TransactionProtocol):
         """Test saving and loading semantic documentation."""
         store = SchemaStore(transaction_context)
         
@@ -127,7 +129,7 @@ class TestViewStore:
     """Test view storage operations."""
     
     @pytest.mark.asyncio
-    async def test_save_and_load_view(self, transaction_context: TransactionContext):
+    async def test_save_and_load_view(self, transaction_context: TransactionProtocol):
         """Test saving and loading views."""
         store = ViewStore(transaction_context)
         
@@ -153,7 +155,7 @@ def query_active_users(tables):
         assert loaded_meta == metadata
     
     @pytest.mark.asyncio
-    async def test_list_views(self, transaction_context: TransactionContext):
+    async def test_list_views(self, transaction_context: TransactionProtocol):
         """Test listing views."""
         store = ViewStore(transaction_context)
         

@@ -1,45 +1,62 @@
 """Configuration management for AI-DB."""
 
-import os
-from dataclasses import dataclass
 from typing import Optional
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 
-@dataclass
-class AIDBConfig:
-    """Configuration for AI-DB."""
+class AIDBConfig(BaseSettings):
+    """Configuration for AI-DB using Pydantic BaseSettings."""
     
     # AI Model Configuration
-    api_base: str = os.getenv("AI_DB_API_BASE", "https://api.openai.com/v1")
-    api_key: str = os.getenv("AI_DB_API_KEY", "")
-    model: str = os.getenv("AI_DB_MODEL", "gpt-4")
-    temperature: float = float(os.getenv("AI_DB_TEMPERATURE", "0.0"))
+    api_base: str = Field(default="https://api.openai.com/v1")
+    api_key: str = Field(default="")
+    model: str = Field(default="gpt-4")
+    temperature: float = Field(default=0.0)
     
     # Execution Configuration
-    max_retries: int = int(os.getenv("AI_DB_MAX_RETRIES", "3"))
-    timeout_seconds: float = float(os.getenv("AI_DB_TIMEOUT", "30.0"))
+    max_retries: int = Field(default=3)
+    timeout_seconds: float = Field(default=30.0)
     
     # Storage Configuration
-    data_directory: str = os.getenv("AI_DB_DATA_DIR", "data")
+    data_directory: str = Field(default="data")
     
     # Validation Configuration
-    strict_validation: bool = os.getenv("AI_DB_STRICT_VALIDATION", "true").lower() == "true"
-    sandbox_execution: bool = os.getenv("AI_DB_SANDBOX_EXECUTION", "true").lower() == "true"
+    strict_validation: bool = Field(default=True)
+    sandbox_execution: bool = Field(default=True)
     
     # Logging Configuration
-    log_level: str = os.getenv("AI_DB_LOG_LEVEL", "INFO")
-    log_ai_interactions: bool = os.getenv("AI_DB_LOG_AI", "false").lower() == "true"
+    log_level: str = Field(default="INFO")
+    log_ai_interactions: bool = Field(default=False)
     
-    def validate(self) -> None:
-        """Validate configuration."""
-        if not self.api_key:
-            raise ValueError("AI_DB_API_KEY environment variable must be set")
-        
-        if self.max_retries < 0:
+    @field_validator('api_key')
+    @classmethod
+    def api_key_must_be_set(cls, v):
+        # For POC, allow empty API key but warn
+        if not v:
+            import logging
+            logging.warning("AI_DB_API_KEY not set - using stub AI agent")
+        return v or "stub-key"
+    
+    @field_validator('max_retries')
+    @classmethod
+    def max_retries_must_be_non_negative(cls, v):
+        if v < 0:
             raise ValueError("max_retries must be non-negative")
-        
-        if self.timeout_seconds <= 0:
+        return v
+    
+    @field_validator('timeout_seconds')
+    @classmethod
+    def timeout_must_be_positive(cls, v):
+        if v <= 0:
             raise ValueError("timeout_seconds must be positive")
+        return v
+    
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "env_prefix": "AI_DB_"
+    }
 
 
 _config: Optional[AIDBConfig] = None
@@ -50,12 +67,10 @@ def get_config() -> AIDBConfig:
     global _config
     if _config is None:
         _config = AIDBConfig()
-        _config.validate()
     return _config
 
 
 def set_config(config: AIDBConfig) -> None:
     """Set the global configuration instance."""
     global _config
-    config.validate()
     _config = config

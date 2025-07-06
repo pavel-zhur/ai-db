@@ -6,9 +6,9 @@ from typing import Dict, Optional, Any
 import yaml
 import logging
 
-from ai_db.core.models import TransactionContext
 from ai_db.exceptions import StorageError
 from ai_db.storage.yaml_store import YAMLStore
+from ai_shared.protocols import TransactionProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ViewStore:
     """Handles view storage and retrieval."""
     
-    def __init__(self, transaction_context: TransactionContext) -> None:
+    def __init__(self, transaction_context: TransactionProtocol) -> None:
         self._yaml_store = YAMLStore(transaction_context)
         self._transaction_context = transaction_context
     
@@ -54,7 +54,7 @@ class ViewStore:
     
     async def list_views(self) -> list[str]:
         """List all view names."""
-        base_path = Path(self._transaction_context.working_directory) / "views"
+        base_path = Path(self._transaction_context.path) / "views"
         
         if not base_path.exists():
             return []

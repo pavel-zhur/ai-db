@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 
 
 class PermissionLevel(Enum):
@@ -99,19 +98,6 @@ class QueryResult:
     transaction_id: Optional[str] = None
     error: Optional[str] = None
     execution_time: Optional[float] = None
-
-
-@dataclass
-class TransactionContext:
-    """Context for transaction operations."""
-    
-    transaction_id: str
-    working_directory: str
-    is_write_escalated: bool = False
-    
-    def escalate_write(self) -> str:
-        """Escalate to write mode and return new working directory."""
-        raise NotImplementedError("Must be implemented by git-layer")
 
 
 @dataclass

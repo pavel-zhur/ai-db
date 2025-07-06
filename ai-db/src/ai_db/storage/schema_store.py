@@ -6,9 +6,10 @@ from typing import Dict, Optional, Any
 import yaml
 import logging
 
-from ai_db.core.models import Schema, Table, Column, Constraint, ConstraintType, TransactionContext
+from ai_db.core.models import Schema, Table, Column, Constraint, ConstraintType
 from ai_db.exceptions import StorageError, SchemaError
 from ai_db.storage.yaml_store import YAMLStore
+from ai_shared.protocols import TransactionProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class SchemaStore:
     """Handles schema storage and retrieval."""
     
-    def __init__(self, transaction_context: TransactionContext) -> None:
+    def __init__(self, transaction_context: TransactionProtocol) -> None:
         self._yaml_store = YAMLStore(transaction_context)
         self._transaction_context = transaction_context
     
@@ -93,7 +94,7 @@ class SchemaStore:
         views_dir = "views"
         try:
             # List all view metadata files
-            base_path = Path(self._transaction_context.working_directory) / views_dir
+            base_path = Path(self._transaction_context.path) / views_dir
             if base_path.exists():
                 for meta_file in base_path.glob("*.meta.yaml"):
                     view_name = meta_file.stem.replace(".meta", "")
@@ -105,7 +106,7 @@ class SchemaStore:
     
     async def _list_schema_files(self) -> list[str]:
         """List all schema files."""
-        base_path = Path(self._transaction_context.working_directory) / "schemas"
+        base_path = Path(self._transaction_context.path) / "schemas"
         
         if not base_path.exists():
             return []

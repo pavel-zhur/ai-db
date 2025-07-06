@@ -1,14 +1,13 @@
 """YAML storage operations for AI-DB."""
 
-import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
+import logging
 import yaml
 import aiofiles
-import logging
 
 from ai_db.exceptions import StorageError
-from ai_db.core.models import TransactionContext
+from ai_shared.protocols import TransactionProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +15,9 @@ logger = logging.getLogger(__name__)
 class YAMLStore:
     """Handles YAML file operations for data storage."""
     
-    def __init__(self, transaction_context: TransactionContext) -> None:
+    def __init__(self, transaction_context: TransactionProtocol) -> None:
         self._transaction_context = transaction_context
-        self._base_path = Path(transaction_context.working_directory)
+        self._base_path = Path(transaction_context.path)
     
     async def read_table(self, table_name: str) -> List[Dict[str, Any]]:
         """Read table data from YAML file."""
@@ -47,10 +46,8 @@ class YAMLStore:
     
     async def write_table(self, table_name: str, data: List[Dict[str, Any]]) -> None:
         """Write table data to YAML file."""
-        if not self._transaction_context.is_write_escalated:
-            new_dir = self._transaction_context.escalate_write()
-            self._base_path = Path(new_dir)
-            self._transaction_context.is_write_escalated = True
+        # Ensure write escalation
+        await self._transaction_context.write_escalation_required()
         
         file_path = self._get_table_path(table_name)
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,15 +57,15 @@ class YAMLStore:
             async with aiofiles.open(file_path, 'w') as f:
                 await f.write(yaml_content)
             logger.info(f"Successfully wrote {len(data)} records to table {table_name}")
+            await self._transaction_context.operation_complete(f"Wrote {len(data)} records to table {table_name}")
         except Exception as e:
+            await self._transaction_context.operation_failed(f"Failed to write table {table_name}: {e}")
             raise StorageError(f"Failed to write table {table_name}: {e}")
     
     async def delete_table(self, table_name: str) -> None:
         """Delete a table's YAML file."""
-        if not self._transaction_context.is_write_escalated:
-            new_dir = self._transaction_context.escalate_write()
-            self._base_path = Path(new_dir)
-            self._transaction_context.is_write_escalated = True
+        # Ensure write escalation
+        await self._transaction_context.write_escalation_required()
         
         file_path = self._get_table_path(table_name)
         
@@ -76,7 +73,9 @@ class YAMLStore:
             try:
                 file_path.unlink()
                 logger.info(f"Deleted table {table_name}")
+                await self._transaction_context.operation_complete(f"Deleted table {table_name}")
             except Exception as e:
+                await self._transaction_context.operation_failed(f"Failed to delete table {table_name}: {e}")
                 raise StorageError(f"Failed to delete table {table_name}: {e}")
     
     async def list_tables(self) -> List[str]:
@@ -107,10 +106,8 @@ class YAMLStore:
     
     async def write_file(self, relative_path: str, content: str) -> None:
         """Write any file content."""
-        if not self._transaction_context.is_write_escalated:
-            new_dir = self._transaction_context.escalate_write()
-            self._base_path = Path(new_dir)
-            self._transaction_context.is_write_escalated = True
+        # Ensure write escalation
+        await self._transaction_context.write_escalation_required()
         
         file_path = self._base_path / relative_path
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,7 +116,9 @@ class YAMLStore:
             async with aiofiles.open(file_path, 'w') as f:
                 await f.write(content)
             logger.info(f"Successfully wrote file {relative_path}")
+            await self._transaction_context.operation_complete(f"Wrote file {relative_path}")
         except Exception as e:
+            await self._transaction_context.operation_failed(f"Failed to write file {relative_path}: {e}")
             raise StorageError(f"Failed to write file {relative_path}: {e}")
     
     def _get_table_path(self, table_name: str) -> Path:

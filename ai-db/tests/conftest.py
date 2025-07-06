@@ -6,8 +6,10 @@ import shutil
 from pathlib import Path
 from typing import Generator, Dict, Any
 
-from ai_db.core.models import TransactionContext
-from ai_db.transaction.context import MockTransactionContext
+from pathlib import Path as PathType
+from unittest.mock import AsyncMock
+from ai_shared.protocols import TransactionProtocol
+from ai_db.core.ai_agent_stub import AIAgentStub
 
 
 @pytest.fixture
@@ -19,12 +21,15 @@ def temp_dir() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def transaction_context(temp_dir: Path) -> TransactionContext:
+def transaction_context(temp_dir: Path) -> TransactionProtocol:
     """Create a mock transaction context."""
-    return MockTransactionContext(
-        transaction_id="test-txn-123",
-        working_directory=str(temp_dir)
-    )
+    mock = AsyncMock(spec=TransactionProtocol)
+    mock.id = "test-txn-123"
+    mock.path = temp_dir
+    mock.write_escalation_required = AsyncMock(return_value=None)
+    mock.operation_complete = AsyncMock(return_value=None)
+    mock.operation_failed = AsyncMock(return_value=None)
+    return mock
 
 
 @pytest.fixture
@@ -132,3 +137,45 @@ def mock_ai_response() -> Dict[str, Any]:
         "confidence": 0.95,
         "interpretation": "Select all users from the users table"
     }
+
+
+@pytest.fixture
+def stub_ai_agent():
+    """Provide AI agent stub for tests."""
+    return AIAgentStub()
+
+
+@pytest.fixture(autouse=True)
+def use_ai_stub(monkeypatch):
+    """Automatically use AI stub for all tests."""
+    # Replace AIAgent imports wherever they're used
+    monkeypatch.setattr('ai_db.core.engine.AIAgent', AIAgentStub)
+    
+    # Also ensure the dependency injection container uses the stub
+    from ai_db.core.engine import DIContainer
+    from dependency_injector import providers
+    
+    # Override the AI agent provider
+    DIContainer.ai_agent.override(providers.Singleton(AIAgentStub))
+
+
+# Mock transaction context for integration tests
+class MockTransactionContext:
+    """Mock transaction context for integration tests."""
+    
+    def __init__(self, transaction_id: str, path: str):
+        self.id = transaction_id
+        self.path = path
+        self._write_escalated = False
+    
+    async def write_escalation_required(self) -> None:
+        """Mock write escalation."""
+        self._write_escalated = True
+    
+    async def operation_complete(self, operation_type: str) -> None:
+        """Mock operation completion."""
+        pass
+    
+    async def operation_failed(self, error: str) -> None:
+        """Mock operation failure."""
+        pass

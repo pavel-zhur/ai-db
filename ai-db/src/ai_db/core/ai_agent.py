@@ -310,8 +310,8 @@ Respond in JSON format with ExecutionPlan including file_updates list."""
         permission_hierarchy = {
             PermissionLevel.SELECT: 0,
             PermissionLevel.DATA_MODIFY: 1,
-            PermissionLevel.VIEW_MODIFY: 1,
-            PermissionLevel.SCHEMA_MODIFY: 2,
+            PermissionLevel.VIEW_MODIFY: 2,
+            PermissionLevel.SCHEMA_MODIFY: 3,
         }
         
         return permission_hierarchy.get(granted, -1) >= permission_hierarchy.get(required, 999)

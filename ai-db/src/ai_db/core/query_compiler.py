@@ -3,14 +3,14 @@
 import ast
 import base64
 import pickle
+import marshal
 import logging
 from typing import Dict, List, Any, Optional, Callable
 from textwrap import dedent
 
-from RestrictedPython import compile_restricted, safe_globals
+from RestrictedPython import compile_restricted_exec, safe_globals
 
 from ai_db.exceptions import CompilationError
-from ai_db.core.models import TransactionContext
 
 logger = logging.getLogger(__name__)
 
@@ -27,23 +27,21 @@ class QueryCompiler:
             # Validate the Python code
             self._validate_code(python_code)
             
-            # Compile with restrictions
-            byte_code = compile_restricted(
-                python_code,
-                filename="<query>",
-                mode="exec"
-            )
+            # Compile with restrictions using new API
+            result = compile_restricted_exec(python_code, filename="<query>")
             
-            if byte_code.errors:
-                raise CompilationError(f"Compilation errors: {'; '.join(byte_code.errors)}")
+            if result.errors:
+                raise CompilationError(f"Compilation errors: {'; '.join(result.errors)}")
             
-            if byte_code.warnings:
-                logger.warning(f"Compilation warnings: {'; '.join(byte_code.warnings)}")
+            byte_code = result.code
+            
+            if result.warnings:
+                logger.warning(f"Compilation warnings: {'; '.join(result.warnings)}")
             
             # Serialize the compiled code and source
             query_plan = {
                 "source": python_code,
-                "byte_code": base64.b64encode(pickle.dumps(byte_code.code)).decode('utf-8'),
+                "byte_code": base64.b64encode(marshal.dumps(byte_code)).decode('utf-8'),
             }
             
             # Return as base64-encoded pickle
@@ -68,8 +66,9 @@ class QueryCompiler:
             exec_globals['__tables__'] = table_data
             exec_locals: Dict[str, Any] = {}
             
-            # Execute the byte code
-            exec(query_plan['byte_code'], exec_globals, exec_locals)
+            # Deserialize and execute the byte code
+            byte_code = marshal.loads(base64.b64decode(query_plan['byte_code']))
+            exec(byte_code, exec_globals, exec_locals)
             
             # Find and call the query function
             query_func = None
@@ -164,6 +163,16 @@ class QueryCompiler:
             'aggregate': self._aggregate,
             'join_tables': self._join_tables,
         })
+        
+        # Add required RestrictedPython functions
+        safe_builtins = globals_dict.get('__builtins__', {})
+        safe_builtins.update({
+            '_getattr_': getattr,
+            '_getitem_': lambda obj, index: obj[index],
+            '_getiter_': iter,
+            '_iter_unpack_sequence_': lambda it, spec: list(it),
+        })
+        globals_dict['__builtins__'] = safe_builtins
         
         return globals_dict
     

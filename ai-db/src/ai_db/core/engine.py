@@ -11,11 +11,13 @@ from ai_db.core.models import (
     PermissionLevel,
     QueryResult,
     QueryContext,
-    TransactionContext,
     DataLossIndicator,
     AIOperation,
 )
+from ai_shared.protocols import TransactionProtocol
 from ai_db.core.ai_agent import AIAgent
+from ai_db.core.ai_agent_stub import AIAgentStub
+from ai_db.config import get_config
 from ai_db.core.query_compiler import QueryCompiler
 from ai_db.storage import YAMLStore, SchemaStore, ViewStore
 from ai_db.validation import DataValidator, ConstraintChecker, SafeExecutor
@@ -37,7 +39,7 @@ class DIContainer(containers.DeclarativeContainer):
     data_validator = providers.Singleton(DataValidator)
     
     # Per-transaction components
-    transaction_context = providers.Dependency(instance_of=TransactionContext)
+    transaction_context = providers.Dependency()  # Will be TransactionProtocol
     
     transaction_manager = providers.Factory(
         TransactionManager,
@@ -78,7 +80,7 @@ class Engine:
         self,
         query: str,
         permissions: PermissionLevel,
-        transaction_context: TransactionContext,
+        transaction_context: TransactionProtocol,
         context: Optional[QueryContext] = None,
     ) -> QueryResult:
         """Execute a database query."""
@@ -115,7 +117,7 @@ class Engine:
                 return QueryResult(
                     status=False,
                     error=execution_plan.error,
-                    transaction_id=transaction_context.transaction_id,
+                    transaction_id=transaction_context.id,
                     execution_time=time.time() - start_time,
                 )
             
@@ -140,12 +142,12 @@ class Engine:
                 return QueryResult(
                     status=False,
                     error=f"Unknown operation type: {operation.operation_type}",
-                    transaction_id=transaction_context.transaction_id,
+                    transaction_id=transaction_context.id,
                     execution_time=time.time() - start_time,
                 )
             
             # Add common metadata
-            result.transaction_id = transaction_context.transaction_id
+            result.transaction_id = transaction_context.id
             result.execution_time = time.time() - start_time
             result.ai_comment = execution_plan.interpretation if hasattr(execution_plan, 'interpretation') else None
             
@@ -155,7 +157,7 @@ class Engine:
             return QueryResult(
                 status=False,
                 error=str(e),
-                transaction_id=transaction_context.transaction_id,
+                transaction_id=transaction_context.id,
                 execution_time=time.time() - start_time,
             )
         except Exception as e:
@@ -163,14 +165,14 @@ class Engine:
             return QueryResult(
                 status=False,
                 error=str(e),
-                transaction_id=transaction_context.transaction_id,
+                transaction_id=transaction_context.id,
                 execution_time=time.time() - start_time,
             )
     
     async def execute_compiled(
         self,
         compiled_plan: str,
-        transaction_context: TransactionContext,
+        transaction_context: TransactionProtocol,
     ) -> QueryResult:
         """Execute a pre-compiled query plan."""
         start_time = time.time()
@@ -197,7 +199,7 @@ class Engine:
             return QueryResult(
                 status=True,
                 data=result_data,
-                transaction_id=transaction_context.transaction_id,
+                transaction_id=transaction_context.id,
                 execution_time=time.time() - start_time,
             )
             
@@ -206,7 +208,7 @@ class Engine:
             return QueryResult(
                 status=False,
                 error=str(e),
-                transaction_id=transaction_context.transaction_id,
+                transaction_id=transaction_context.id,
                 execution_time=time.time() - start_time,
             )
     

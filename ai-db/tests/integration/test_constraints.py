@@ -7,7 +7,8 @@ import yaml
 from ai_db.storage import YAMLStore, SchemaStore
 from ai_db.validation import ConstraintChecker, SafeExecutor
 from ai_db.core.models import Table, Column, Constraint, ConstraintType
-from ai_db.transaction.context import MockTransactionContext
+from ai_shared.protocols import TransactionProtocol
+from unittest.mock import AsyncMock
 
 
 class TestConstraintIntegration:
@@ -16,7 +17,13 @@ class TestConstraintIntegration:
     @pytest.mark.asyncio
     async def test_foreign_key_cascade(self, temp_dir):
         """Test foreign key validation across multiple tables."""
-        transaction = MockTransactionContext("test-txn", str(temp_dir))
+        # Create mock transaction
+        transaction = AsyncMock(spec=TransactionProtocol)
+        transaction.id = "test-txn"
+        transaction.path = temp_dir
+        transaction.write_escalation_required = AsyncMock(return_value=None)
+        transaction.operation_complete = AsyncMock(return_value=None)
+        transaction.operation_failed = AsyncMock(return_value=None)
         
         # Create schemas directory
         schemas_dir = temp_dir / "schemas"
@@ -117,7 +124,13 @@ class TestConstraintIntegration:
     @pytest.mark.asyncio
     async def test_complex_check_constraint(self, temp_dir):
         """Test complex CHECK constraints."""
-        transaction = MockTransactionContext("test-txn", str(temp_dir))
+        # Create mock transaction
+        transaction = AsyncMock(spec=TransactionProtocol)
+        transaction.id = "test-txn"
+        transaction.path = temp_dir
+        transaction.write_escalation_required = AsyncMock(return_value=None)
+        transaction.operation_complete = AsyncMock(return_value=None)
+        transaction.operation_failed = AsyncMock(return_value=None)
         
         # Create a table with complex check constraint
         products_table = Table(
@@ -186,7 +199,13 @@ class TestConstraintIntegration:
     @pytest.mark.asyncio
     async def test_multi_column_unique_constraint(self, temp_dir):
         """Test multi-column unique constraints."""
-        transaction = MockTransactionContext("test-txn", str(temp_dir))
+        # Create mock transaction
+        transaction = AsyncMock(spec=TransactionProtocol)
+        transaction.id = "test-txn"
+        transaction.path = temp_dir
+        transaction.write_escalation_required = AsyncMock(return_value=None)
+        transaction.operation_complete = AsyncMock(return_value=None)
+        transaction.operation_failed = AsyncMock(return_value=None)
         
         # Create a table with multi-column unique constraint
         user_roles_table = Table(

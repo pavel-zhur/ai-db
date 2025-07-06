@@ -2,7 +2,7 @@
 
 import logging
 from typing import Any, Optional, Callable, Dict
-from RestrictedPython import compile_restricted, safe_globals
+from RestrictedPython import compile_restricted_exec, compile_restricted_eval, safe_globals
 
 from ai_db.exceptions import ValidationError
 
@@ -22,22 +22,20 @@ class SafeExecutor:
     ) -> Optional[Callable[..., Any]]:
         """Compile and return a function from code."""
         try:
-            # Compile with restrictions
-            byte_code = compile_restricted(
-                code,
-                filename=f"<{function_name}>",
-                mode="exec"
-            )
+            # Compile with restrictions using new API
+            result = compile_restricted_exec(code, filename=f"<{function_name}>")
             
-            if byte_code.errors:
-                logger.error(f"Compilation errors: {'; '.join(byte_code.errors)}")
+            if result.errors:
+                logger.error(f"Compilation errors: {'; '.join(result.errors)}")
                 return None
+            
+            byte_code = result.code
             
             # Execute in safe environment
             exec_globals = self._safe_globals.copy()
             exec_locals: Dict[str, Any] = {}
             
-            exec(byte_code.code, exec_globals, exec_locals)
+            exec(byte_code, exec_globals, exec_locals)
             
             # Return the function
             return exec_locals.get(function_name)
@@ -53,22 +51,20 @@ class SafeExecutor:
     ) -> Any:
         """Evaluate a Python expression safely."""
         try:
-            # Compile expression
-            byte_code = compile_restricted(
-                expression,
-                filename="<expression>",
-                mode="eval"
-            )
+            # Compile expression using new API
+            result = compile_restricted_eval(expression, filename="<expression>")
             
-            if byte_code.errors:
-                raise ValidationError(f"Expression compilation failed: {'; '.join(byte_code.errors)}")
+            if result.errors:
+                raise ValidationError(f"Expression compilation failed: {'; '.join(result.errors)}")
+            
+            byte_code = result.code
             
             # Create evaluation environment
             eval_globals = self._safe_globals.copy()
             eval_globals.update(context)
             
             # Evaluate
-            return eval(byte_code.code, eval_globals)
+            return eval(byte_code, eval_globals)
             
         except Exception as e:
             logger.error(f"Failed to evaluate expression: {e}")
@@ -110,6 +106,12 @@ class SafeExecutor:
             'any': any,
             'zip': zip,
             'range': range,
+            
+            # Required for RestrictedPython
+            '_getattr_': getattr,
+            '_getitem_': lambda obj, index: obj[index],
+            '_getiter_': iter,
+            '_iter_unpack_sequence_': lambda it, spec: list(it),
         }
         
         globals_dict['__builtins__'] = safe_builtins
