@@ -1,1 +1,0 @@
-"""Examples for git-layer usage."""
