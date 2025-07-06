@@ -354,6 +354,28 @@ POST /db/data          # Data modifications (INSERT/UPDATE/DELETE)
 - Frontend displays data and accepts updates
 - Correct error handling for invalid requests
 
+## Code Quality and Standardization
+
+### Holistic Codebase
+- Code should look unified, as if written by a single team
+- Consistent patterns across documentation, Docker, tests, folder structure
+- No component should appear developed in isolation
+
+### Standardized Infrastructure
+- Uniform Docker approach and test organization across components
+- Ensure no redundant infrastructure and over-engineered solutions
+- Only necessary files for each component's functionality
+
+### Monorepo Best Practices
+- Follow Python industry standards for monorepo structure
+- Proper dependency management between libraries and applications
+- Components reference each other through well-defined interfaces
+
+### Developer Experience
+- System must run easily on host machines, in containers, and in CI/CD
+- Simple, consistent commands for all development tasks
+- Single-command setup for new developers
+
 ## Future Considerations (Not in POC)
 
 - Chat and voice features in ai-hub
