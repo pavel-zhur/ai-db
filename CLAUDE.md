@@ -64,13 +64,13 @@ Let exceptions propagate to where they can be meaningfully handled. Trust your c
 
 # Development Commands
 
-When working on any component in this monorepo, use Poetry for all Python operations:
+Poetry is pre-installed in the devcontainer. When working on any component in this monorepo, use Poetry for all Python operations:
 
 ```bash
 # Navigate to the component directory first
 cd ai-db  # or ai-shared, ai-frontend, git-layer, console, mcp, ai-hub
 
-# Install dependencies (creates isolated virtual environment)
+# Install component dependencies (creates isolated virtual environment)
 poetry install
 
 # Run tests
