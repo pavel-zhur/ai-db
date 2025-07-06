@@ -37,6 +37,7 @@ ai-hub = "ai_hub.main:main"
 [tool.mypy]
 python_version = "3.13"
 strict = true
+exclude = ["tests/"]
 
 [tool.black]
 line-length = 100

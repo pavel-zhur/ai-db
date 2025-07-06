@@ -63,34 +63,29 @@ class TestQueryEndpoint:
         mock_response = QueryResponse(
             success=True,
             data=[{"id": 1, "name": "John"}],
-            schema={"users": {"id": "integer", "name": "string"}},
+            result_schema={"users": {"id": "integer", "name": "string"}},
             data_loss_indicator=DataLossIndicator.NONE,
             ai_comment="Query executed successfully",
-            execution_time=0.5
+            execution_time=0.5,
         )
         mock_service.execute_query.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
-                "/api/v1/db/query",
-                json={
-                    "query": "SELECT * FROM users",
-                    "permissions": "select"
-                }
+                "/api/v1/db/query", json={"query": "SELECT * FROM users", "permissions": "select"}
             )
 
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["data"] == [{"id": 1, "name": "John"}]
-        assert data["schema"] == {"users": {"id": "integer", "name": "string"}}
+        assert data["result_schema"] == {"users": {"id": "integer", "name": "string"}}
         assert data["data_loss_indicator"] == "none"
         assert data["ai_comment"] == "Query executed successfully"
         assert data["execution_time"] == 0.5
 
         mock_service.execute_query.assert_called_once_with(
-            query="SELECT * FROM users",
-            permissions=PermissionLevel.SELECT
+            query="SELECT * FROM users", permissions=PermissionLevel.SELECT
         )
 
     @pytest.mark.asyncio
@@ -101,7 +96,7 @@ class TestQueryEndpoint:
             json={
                 "query": "SELECT * FROM users"
                 # Missing permissions
-            }
+            },
         )
 
         assert response.status_code == 422  # Validation error
@@ -111,13 +106,9 @@ class TestQueryEndpoint:
         """Test query execution with service error."""
         mock_service.execute_query.side_effect = Exception("Database connection failed")
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
-                "/api/v1/db/query",
-                json={
-                    "query": "SELECT * FROM users",
-                    "permissions": "select"
-                }
+                "/api/v1/db/query", json={"query": "SELECT * FROM users", "permissions": "select"}
             )
 
         assert response.status_code == 500
@@ -134,18 +125,13 @@ class TestViewEndpoint:
     async def test_execute_view_success(self, async_client, mock_service):
         """Test successful view execution."""
         mock_response = QueryResponse(
-            success=True,
-            data=[{"summary": "User summary"}],
-            execution_time=0.3
+            success=True, data=[{"summary": "User summary"}], execution_time=0.3
         )
         mock_service.execute_view.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
-                "/api/v1/db/query/view",
-                json={
-                    "view_name": "user_summary"
-                }
+                "/api/v1/db/query/view", json={"view_name": "user_summary"}
             )
 
         assert response.status_code == 200
@@ -153,10 +139,7 @@ class TestViewEndpoint:
         assert data["success"] is True
         assert data["data"] == [{"summary": "User summary"}]
 
-        mock_service.execute_view.assert_called_once_with(
-            view_name="user_summary",
-            parameters=None
-        )
+        mock_service.execute_view.assert_called_once_with(view_name="user_summary", parameters=None)
 
     @pytest.mark.asyncio
     async def test_execute_view_with_parameters(self, async_client, mock_service):
@@ -164,29 +147,25 @@ class TestViewEndpoint:
         mock_response = QueryResponse(success=True, data=[])
         mock_service.execute_view.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
                 "/api/v1/db/query/view",
                 json={
                     "view_name": "user_details",
-                    "parameters": {"user_id": 123, "status": "active"}
-                }
+                    "parameters": {"user_id": 123, "status": "active"},
+                },
             )
 
         assert response.status_code == 200
 
         mock_service.execute_view.assert_called_once_with(
-            view_name="user_details",
-            parameters={"user_id": 123, "status": "active"}
+            view_name="user_details", parameters={"user_id": 123, "status": "active"}
         )
 
     @pytest.mark.asyncio
     async def test_execute_view_validation_error(self, async_client):
         """Test view execution with validation error."""
-        response = await async_client.post(
-            "/api/v1/db/query/view",
-            json={}  # Missing view_name
-        )
+        response = await async_client.post("/api/v1/db/query/view", json={})  # Missing view_name
 
         assert response.status_code == 422
 
@@ -200,17 +179,17 @@ class TestDataModificationEndpoint:
         mock_response = QueryResponse(
             success=True,
             data_loss_indicator=DataLossIndicator.NONE,
-            ai_comment="Data inserted successfully"
+            ai_comment="Data inserted successfully",
         )
         mock_service.execute_data_modification.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
                 "/api/v1/db/data",
                 json={
                     "operation": "INSERT INTO users (name) VALUES ('John')",
-                    "permissions": "data_modify"
-                }
+                    "permissions": "data_modify",
+                },
             )
 
         assert response.status_code == 200
@@ -221,7 +200,7 @@ class TestDataModificationEndpoint:
 
         mock_service.execute_data_modification.assert_called_once_with(
             operation="INSERT INTO users (name) VALUES ('John')",
-            permissions=PermissionLevel.DATA_MODIFY
+            permissions=PermissionLevel.DATA_MODIFY,
         )
 
     @pytest.mark.asyncio
@@ -230,20 +209,20 @@ class TestDataModificationEndpoint:
         mock_response = QueryResponse(success=True)
         mock_service.execute_data_modification.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
                 "/api/v1/db/data",
                 json={
                     "operation": "UPDATE users SET name = 'Jane' WHERE id = 1"
                     # No explicit permissions - should default to data_modify
-                }
+                },
             )
 
         assert response.status_code == 200
 
         mock_service.execute_data_modification.assert_called_once_with(
             operation="UPDATE users SET name = 'Jane' WHERE id = 1",
-            permissions=PermissionLevel.DATA_MODIFY  # Default
+            permissions=PermissionLevel.DATA_MODIFY,  # Default
         )
 
     @pytest.mark.asyncio
@@ -252,29 +231,26 @@ class TestDataModificationEndpoint:
         mock_response = QueryResponse(success=True)
         mock_service.execute_data_modification.return_value = mock_response
 
-        with patch('ai_hub.endpoints.get_service', return_value=mock_service):
+        with patch("ai_hub.main.get_service_instance", return_value=mock_service):
             response = await async_client.post(
                 "/api/v1/db/data",
                 json={
                     "operation": "CREATE TABLE new_table (id INTEGER)",
-                    "permissions": "schema_modify"
-                }
+                    "permissions": "schema_modify",
+                },
             )
 
         assert response.status_code == 200
 
         mock_service.execute_data_modification.assert_called_once_with(
             operation="CREATE TABLE new_table (id INTEGER)",
-            permissions=PermissionLevel.SCHEMA_MODIFY
+            permissions=PermissionLevel.SCHEMA_MODIFY,
         )
 
     @pytest.mark.asyncio
     async def test_execute_data_modification_validation_error(self, async_client):
         """Test data modification with validation error."""
-        response = await async_client.post(
-            "/api/v1/db/data",
-            json={}  # Missing operation
-        )
+        response = await async_client.post("/api/v1/db/data", json={})  # Missing operation
 
         assert response.status_code == 422
 
@@ -284,10 +260,7 @@ class TestCORS:
 
     def test_cors_headers(self, client):
         """Test CORS headers are present."""
-        response = client.options(
-            "/api/v1/db/query",
-            headers={"Origin": "http://localhost:3000"}
-        )
+        response = client.options("/api/v1/db/query", headers={"Origin": "http://localhost:3000"})
 
         # FastAPI automatically handles OPTIONS for CORS
         assert response.status_code in [200, 405]  # 405 if no explicit OPTIONS handler
@@ -299,8 +272,8 @@ class TestCORS:
             headers={
                 "Origin": "http://localhost:3000",
                 "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "Content-Type"
-            }
+                "Access-Control-Request-Headers": "Content-Type",
+            },
         )
 
         # Should allow the request (exact status depends on FastAPI CORS implementation)

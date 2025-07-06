@@ -17,8 +17,8 @@ class AIHubError(Exception):
     def __init__(
         self,
         message: str,
-        error_details: Optional[dict[str, Any]] = None,
-        status_code: int = 500
+        error_details: Optional[dict[str, Any]] = None,  # Any for arbitrary error details
+        status_code: int = 500,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -74,11 +74,14 @@ def create_user_friendly_error(exception: Exception) -> tuple[str, dict[str, Any
     }
 
     # Add additional details for known exception types
-    if hasattr(exception, '__dict__'):
-        technical_details.update({
-            k: v for k, v in exception.__dict__.items()
-            if not k.startswith('_') and k not in ['args']
-        })
+    if hasattr(exception, "__dict__"):
+        technical_details.update(
+            {
+                k: v
+                for k, v in exception.__dict__.items()
+                if not k.startswith("_") and k not in ["args"]
+            }
+        )
 
     # Create user-friendly messages based on exception type
     user_friendly_message = _get_user_friendly_message(exception, error_type)
@@ -154,10 +157,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         return JSONResponse(
             status_code=exc.status_code,
             content=ErrorResponse(
-                error=exc.message,
-                error_details=exc.error_details,
-                error_type=type(exc).__name__
-            ).model_dump()
+                error=exc.message, error_details=exc.error_details, error_type=type(exc).__name__
+            ).model_dump(),
         )
 
     # Handle HTTPException instances
@@ -165,9 +166,8 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         return JSONResponse(
             status_code=exc.status_code,
             content=ErrorResponse(
-                error=exc.detail,
-                error_type="HTTPException"
-            ).model_dump()
+                error=exc.detail, error_details=None, error_type="HTTPException"
+            ).model_dump(),
         )
 
     # Handle all other exceptions
@@ -176,8 +176,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
-            error=user_friendly_message,
-            error_details=technical_details,
-            error_type=error_type
-        ).model_dump()
+            error=user_friendly_message, error_details=technical_details, error_type=error_type
+        ).model_dump(),
     )

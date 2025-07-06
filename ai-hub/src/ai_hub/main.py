@@ -13,20 +13,24 @@ from .service import AIHubService
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# Load configuration
-config = Config()
+# Configuration (loaded once)
+# Using function to allow testing override
+def get_config() -> Config:
+    """Get application configuration."""
+    return Config()
 
-# Create service instance (singleton)
+config = get_config()
+
+# Service instance will be created lazily
 _service_instance: AIHubService | None = None
 
 
 def get_service_instance() -> AIHubService:
-    """Get the singleton service instance."""
+    """Get the service instance (lazy initialization)."""
     global _service_instance
     if _service_instance is None:
         _service_instance = AIHubService(config)
@@ -57,30 +61,30 @@ app.include_router(router, prefix="/api/v1")
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, object]:
     """Root endpoint."""
     return {
         "message": "AI-Hub API Server",
         "version": "0.1.0",
         "docs": "/docs",
         "git_repo_path": config.git_repo_path,
-        "repo_exists": Path(config.git_repo_path).exists()
+        "repo_exists": Path(config.git_repo_path).exists(),
     }
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, object]:
     """Health check endpoint."""
     repo_path = Path(config.git_repo_path)
     return {
         "status": "healthy",
         "git_repo_path": config.git_repo_path,
         "repo_exists": repo_path.exists(),
-        "repo_is_git": (repo_path / ".git").exists() if repo_path.exists() else False
+        "repo_is_git": (repo_path / ".git").exists() if repo_path.exists() else False,
     }
 
 
-def main():
+def main() -> None:
     """Main entry point for running the server."""
     import uvicorn
 
@@ -94,12 +98,7 @@ def main():
         logger.info("Creating repository directory...")
         repo_path.mkdir(parents=True, exist_ok=True)
 
-    uvicorn.run(
-        app,
-        host=config.host,
-        port=config.port,
-        log_level=config.aidb_log_level.lower()
-    )
+    uvicorn.run(app, host=config.host, port=config.port, log_level="info")
 
 
 if __name__ == "__main__":

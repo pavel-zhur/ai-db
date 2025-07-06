@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 def get_service() -> AIHubService:
     """Dependency to get AI-Hub service instance."""
     from .main import get_service_instance
+
     return get_service_instance()
 
 
@@ -28,8 +29,7 @@ router = APIRouter()
 
 @router.post("/db/query", response_model=QueryResponse)
 async def execute_query(
-    request: QueryRequest,
-    service: AIHubService = Depends(get_service)
+    request: QueryRequest, service: AIHubService = Depends(get_service)
 ) -> QueryResponse:
     """Execute a compiled query or natural language query."""
     try:
@@ -37,10 +37,7 @@ async def execute_query(
             f"Executing query with permissions {request.permissions}: {request.query[:100]}..."
         )
 
-        result = await service.execute_query(
-            query=request.query,
-            permissions=request.permissions
-        )
+        result = await service.execute_query(query=request.query, permissions=request.permissions)
 
         logger.info(f"Query execution completed successfully: {result.success}")
         return result
@@ -57,26 +54,25 @@ async def execute_query(
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(
-                error=user_friendly_message,
-                error_details=technical_details,
-                error_type=error_type
-            ).model_dump()
+                error=user_friendly_message, error_details=technical_details, error_type=error_type
+            ).model_dump(),
         )
 
 
 @router.post("/db/query/view", response_model=QueryResponse)
 async def execute_view(
-    request: ViewQueryRequest,
-    service: AIHubService = Depends(get_service)
+    request: ViewQueryRequest, service: AIHubService = Depends(get_service)
 ) -> QueryResponse:
     """Execute a named view query."""
     try:
         logger.info(f"Executing view: {request.view_name}")
 
-        result = await service.execute_view(
-            view_name=request.view_name,
-            parameters=request.parameters
-        )
+        # Convert parameters from Any to object if present
+        params: dict[str, object] | None = None
+        if request.parameters:
+            params = {k: v for k, v in request.parameters.items()}
+
+        result = await service.execute_view(view_name=request.view_name, parameters=params)
 
         logger.info(f"View execution completed successfully: {result.success}")
         return result
@@ -93,17 +89,14 @@ async def execute_view(
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(
-                error=user_friendly_message,
-                error_details=technical_details,
-                error_type=error_type
-            ).model_dump()
+                error=user_friendly_message, error_details=technical_details, error_type=error_type
+            ).model_dump(),
         )
 
 
 @router.post("/db/data", response_model=QueryResponse)
 async def execute_data_modification(
-    request: DataModificationRequest,
-    service: AIHubService = Depends(get_service)
+    request: DataModificationRequest, service: AIHubService = Depends(get_service)
 ) -> QueryResponse:
     """Execute a data modification operation (INSERT/UPDATE/DELETE)."""
     try:
@@ -113,8 +106,7 @@ async def execute_data_modification(
         )
 
         result = await service.execute_data_modification(
-            operation=request.operation,
-            permissions=request.permissions
+            operation=request.operation, permissions=request.permissions
         )
 
         logger.info(f"Data modification completed successfully: {result.success}")
@@ -132,8 +124,6 @@ async def execute_data_modification(
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(
-                error=user_friendly_message,
-                error_details=technical_details,
-                error_type=error_type
-            ).model_dump()
+                error=user_friendly_message, error_details=technical_details, error_type=error_type
+            ).model_dump(),
         )

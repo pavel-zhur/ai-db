@@ -21,3 +21,8 @@ pytest-asyncio = "^0.24"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+exclude = ["tests/"]

@@ -34,6 +34,7 @@ class ViewQueryRequest(BaseModel):
     """Request model for executing view queries."""
 
     view_name: str = Field(..., description="Name of the view to execute")
+    # Any is appropriate here - parameters come from external JSON and can be any type
     parameters: Optional[dict[str, Any]] = Field(None, description="Parameters to pass to the view")
 
 
@@ -52,7 +53,9 @@ class QueryResponse(BaseModel):
     """Response model for query operations."""
 
     success: bool = Field(..., description="Whether the operation succeeded")
+    # Any is appropriate - database query results can contain any JSON-serializable type
     data: Optional[list[dict[str, Any]]] = Field(None, description="Query result data")
+    # Any is appropriate - schema information from database can be complex nested structures
     result_schema: Optional[dict[str, Any]] = Field(None, description="Schema information")
     data_loss_indicator: DataLossIndicator = Field(
         default=DataLossIndicator.NONE, description="Indicator for potential data loss"
@@ -61,6 +64,7 @@ class QueryResponse(BaseModel):
     compiled_plan: Optional[str] = Field(None, description="Compiled query plan")
     transaction_id: Optional[str] = Field(None, description="Transaction identifier")
     error: Optional[str] = Field(None, description="Error message if operation failed")
+    # Any is appropriate - error details can contain arbitrary debugging information
     error_details: Optional[dict[str, Any]] = Field(None, description="Technical error details")
     execution_time: Optional[float] = Field(None, description="Execution time in seconds")
 
@@ -70,6 +74,7 @@ class ErrorResponse(BaseModel):
 
     success: bool = Field(default=False, description="Always false for error responses")
     error: str = Field(..., description="User-friendly error message")
+    # Any is appropriate - error details can contain arbitrary debugging information
     error_details: Optional[dict[str, Any]] = Field(
         None, description="Technical error details for debugging"
     )

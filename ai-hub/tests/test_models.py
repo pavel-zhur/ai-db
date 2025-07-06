@@ -40,10 +40,7 @@ class TestQueryRequest:
 
     def test_valid_query_request(self):
         """Test valid query request creation."""
-        request = QueryRequest(
-            query="SELECT * FROM users",
-            permissions=PermissionLevel.SELECT
-        )
+        request = QueryRequest(query="SELECT * FROM users", permissions=PermissionLevel.SELECT)
         assert request.query == "SELECT * FROM users"
         assert request.permissions == PermissionLevel.SELECT
 
@@ -90,8 +87,7 @@ class TestDataModificationRequest:
     def test_data_modification_with_custom_permissions(self):
         """Test data modification with custom permissions."""
         request = DataModificationRequest(
-            operation="DROP TABLE users",
-            permissions=PermissionLevel.SCHEMA_MODIFY
+            operation="DROP TABLE users", permissions=PermissionLevel.SCHEMA_MODIFY
         )
         assert request.operation == "DROP TABLE users"
         assert request.permissions == PermissionLevel.SCHEMA_MODIFY
@@ -110,7 +106,7 @@ class TestQueryResponse:
         response = QueryResponse(
             success=True,
             data=[{"id": 1, "name": "John"}],
-            result_schema={"users": {"id": "integer", "name": "string"}}
+            result_schema={"users": {"id": "integer", "name": "string"}},
         )
         assert response.success is True
         assert response.data == [{"id": 1, "name": "John"}]
@@ -121,9 +117,7 @@ class TestQueryResponse:
     def test_error_query_response(self):
         """Test error query response creation."""
         response = QueryResponse(
-            success=False,
-            error="Table not found",
-            error_details={"table": "non_existent"}
+            success=False, error="Table not found", error_details={"table": "non_existent"}
         )
         assert response.success is False
         assert response.error == "Table not found"
@@ -135,7 +129,7 @@ class TestQueryResponse:
         response = QueryResponse(
             success=True,
             data_loss_indicator=DataLossIndicator.PROBABLE,
-            ai_comment="Some data might be lost during schema migration"
+            ai_comment="Some data might be lost during schema migration",
         )
         assert response.success is True
         assert response.data_loss_indicator == DataLossIndicator.PROBABLE
@@ -158,7 +152,7 @@ class TestErrorResponse:
         response = ErrorResponse(
             error="Database connection failed",
             error_details={"host": "localhost", "port": 5432},
-            error_type="ConnectionError"
+            error_type="ConnectionError",
         )
         assert response.success is False
         assert response.error == "Database connection failed"

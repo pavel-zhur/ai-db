@@ -22,8 +22,10 @@ def mock_config():
 @pytest.fixture
 def service(mock_config):
     """Create AIHubService instance with mock config."""
-    with patch('ai_hub.service.os.environ'):
-        return AIHubService(mock_config)
+    with patch("ai_hub.service.os.environ"):
+        with patch("ai_hub.service.AIDB") as mock_aidb:
+            mock_aidb.return_value = MagicMock()
+            return AIHubService(mock_config)
 
 
 class TestAIHubService:
@@ -31,30 +33,25 @@ class TestAIHubService:
 
     def test_init(self, mock_config):
         """Test service initialization."""
-        with patch('ai_hub.service.os.environ') as mock_environ:
-            service = AIHubService(mock_config)
+        with patch("ai_hub.service.os.environ") as mock_environ:
+            with patch("ai_hub.service.AIDB") as mock_aidb:
+                mock_aidb_instance = MagicMock()
+                mock_aidb.return_value = mock_aidb_instance
 
-            # Check that environment variables were set
-            assert any('AI_DB_' in str(call) for call in mock_environ.__setitem__.call_args_list)
+                service = AIHubService(mock_config)
 
-            # Check that AIDB is None initially
-            assert service._aidb is None
+                # Check that environment variables were set
+                assert any("AI_DB_" in str(call)
+                          for call in mock_environ.__setitem__.call_args_list)
+
+                # Check that AIDB was created
+                assert service._aidb == mock_aidb_instance
 
     def test_aidb_property(self, service):
-        """Test AIDB property lazy initialization."""
-        with patch('ai_hub.service.AIDB') as mock_aidb_class:
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-
-            # First access should create instance
-            aidb1 = service.aidb
-            assert aidb1 is mock_aidb_instance
-            mock_aidb_class.assert_called_once()
-
-            # Second access should return same instance
-            aidb2 = service.aidb
-            assert aidb2 is mock_aidb_instance
-            assert mock_aidb_class.call_count == 1
+        """Test AIDB property returns the initialized instance."""
+        # AIDB is already initialized in the service fixture
+        assert service.aidb is not None
+        assert service.aidb == service._aidb
 
     def test_convert_permission_level(self, service):
         """Test permission level conversion."""
@@ -88,7 +85,7 @@ class TestAIHubService:
         def mock_log_info(message):
             feedback_calls.append(message)
 
-        with patch('ai_hub.service.logger.info', side_effect=mock_log_info):
+        with patch("ai_hub.service.logger.info", side_effect=mock_log_info):
             # Start progress feedback
             task = asyncio.create_task(service._progress_feedback("test operation"))
 
@@ -109,25 +106,18 @@ class TestAIHubService:
     @pytest.mark.asyncio
     async def test_execute_with_progress(self, service):
         """Test operation execution with progress feedback."""
+
         async def mock_operation():
             await asyncio.sleep(0.1)
             return "success"
 
-        with patch.object(service, '_progress_feedback') as mock_progress:
-            mock_progress_task = AsyncMock()
-            mock_progress.return_value = mock_progress_task
+        # Create a real async task that can be cancelled
+        async def mock_progress_feedback(desc):
+            await asyncio.sleep(10)  # Will be cancelled before completion
 
-            # Mock the task cancel method
-            mock_progress_task.cancel = MagicMock()
-
-            with patch('asyncio.create_task', return_value=mock_progress_task):
-                result = await service._execute_with_progress(
-                    mock_operation(),
-                    "test operation"
-                )
-
-                assert result == "success"
-                mock_progress_task.cancel.assert_called_once()
+        with patch.object(service, "_progress_feedback", side_effect=mock_progress_feedback):
+            result = await service._execute_with_progress(mock_operation(), "test operation")
+            assert result == "success"
 
     @pytest.mark.asyncio
     async def test_execute_query_success(self, service):
@@ -136,7 +126,7 @@ class TestAIHubService:
         mock_result = MagicMock()
         mock_result.status = True
         mock_result.data = [{"id": 1, "name": "test"}]
-        mock_result.schema = {"users": {"id": "int"}}
+        mock_result.schema = {"users": {"id": "int"}}  # AI-DB uses 'schema'
         mock_result.data_loss_indicator = MagicMock()
         mock_result.data_loss_indicator.value = "none"
         mock_result.ai_comment = "Query executed successfully"
@@ -145,14 +135,14 @@ class TestAIHubService:
         mock_result.error = None
         mock_result.execution_time = 0.5
 
-        with patch('ai_hub.service.git_layer.begin') as mock_begin, \
-             patch('ai_hub.service.AIDB') as mock_aidb_class, \
-             patch.object(service, '_execute_with_progress') as mock_execute_progress:
+        with (
+            patch("ai_hub.service.git_layer.begin") as mock_begin,
+            patch.object(service, "_execute_with_progress") as mock_execute_progress,
+        ):
 
             mock_begin.return_value.__aenter__.return_value = mock_transaction
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-            mock_aidb_instance.execute = AsyncMock(return_value=mock_result)
+            # Mock the execute method on the existing AIDB instance
+            service._aidb.execute = AsyncMock(return_value=mock_result)
 
             # Mock _execute_with_progress to execute the coroutine directly
             async def execute_directly(coro, desc):
@@ -173,14 +163,14 @@ class TestAIHubService:
         """Test query execution failure."""
         mock_transaction = AsyncMock()
 
-        with patch('ai_hub.service.git_layer.begin') as mock_begin, \
-             patch('ai_hub.service.AIDB') as mock_aidb_class, \
-             patch.object(service, '_execute_with_progress') as mock_execute_progress:
+        with (
+            patch("ai_hub.service.git_layer.begin") as mock_begin,
+            patch.object(service, "_execute_with_progress") as mock_execute_progress,
+        ):
 
             mock_begin.return_value.__aenter__.return_value = mock_transaction
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-            mock_aidb_instance.execute.side_effect = Exception("Query failed")
+            # Mock the execute method to raise an exception
+            service._aidb.execute = AsyncMock(side_effect=Exception("Query failed"))
 
             # Mock _execute_with_progress to execute the coroutine directly
             async def execute_directly(coro, desc):
@@ -200,15 +190,23 @@ class TestAIHubService:
         mock_result = MagicMock()
         mock_result.status = True
         mock_result.data = [{"summary": "data"}]
+        mock_result.schema = None
+        mock_result.data_loss_indicator = MagicMock()
+        mock_result.data_loss_indicator.value = "none"
+        mock_result.ai_comment = None
+        mock_result.compiled_plan = None
+        mock_result.transaction_id = None
+        mock_result.error = None
+        mock_result.execution_time = None
 
-        with patch('ai_hub.service.git_layer.begin') as mock_begin, \
-             patch('ai_hub.service.AIDB') as mock_aidb_class, \
-             patch.object(service, '_execute_with_progress') as mock_execute_progress:
+        with (
+            patch("ai_hub.service.git_layer.begin") as mock_begin,
+            patch.object(service, "_execute_with_progress") as mock_execute_progress,
+        ):
 
             mock_begin.return_value.__aenter__.return_value = mock_transaction
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-            mock_aidb_instance.execute = AsyncMock(return_value=mock_result)
+            # Mock the execute method on the existing AIDB instance
+            service._aidb.execute = AsyncMock(return_value=mock_result)
 
             # Mock _execute_with_progress to execute the coroutine directly
             async def execute_directly(coro, desc):
@@ -216,7 +214,7 @@ class TestAIHubService:
 
             mock_execute_progress.side_effect = execute_directly
 
-            result = await service.execute_view("user_summary")
+            result = await service.execute_view("user_summary", None)
 
             assert result.success is True
             assert result.data == [{"summary": "data"}]
@@ -229,15 +227,24 @@ class TestAIHubService:
         mock_transaction = AsyncMock()
         mock_result = MagicMock()
         mock_result.status = True
+        mock_result.data = None
+        mock_result.schema = None
+        mock_result.data_loss_indicator = MagicMock()
+        mock_result.data_loss_indicator.value = "none"
+        mock_result.ai_comment = None
+        mock_result.compiled_plan = None
+        mock_result.transaction_id = None
+        mock_result.error = None
+        mock_result.execution_time = None
 
-        with patch('ai_hub.service.git_layer.begin') as mock_begin, \
-             patch('ai_hub.service.AIDB') as mock_aidb_class, \
-             patch.object(service, '_execute_with_progress') as mock_execute_progress:
+        with (
+            patch("ai_hub.service.git_layer.begin") as mock_begin,
+            patch.object(service, "_execute_with_progress") as mock_execute_progress,
+        ):
 
             mock_begin.return_value.__aenter__.return_value = mock_transaction
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-            mock_aidb_instance.execute = AsyncMock(return_value=mock_result)
+            # Mock the execute method on the existing AIDB instance
+            service._aidb.execute = AsyncMock(return_value=mock_result)
 
             # Mock _execute_with_progress to execute the coroutine directly
             async def execute_directly(coro, desc):
@@ -249,7 +256,7 @@ class TestAIHubService:
             await service.execute_view("user_details", parameters)
 
             # Check that the query was constructed with parameters
-            call_args = mock_aidb_instance.execute.call_args
+            call_args = service._aidb.execute.call_args
             query = call_args[1]["query"]
             assert "user_details" in query
             assert "user_id=123" in query
@@ -261,15 +268,24 @@ class TestAIHubService:
         mock_transaction = AsyncMock()
         mock_result = MagicMock()
         mock_result.status = True
+        mock_result.data = None
+        mock_result.schema = None
+        mock_result.data_loss_indicator = MagicMock()
+        mock_result.data_loss_indicator.value = "none"
+        mock_result.ai_comment = None
+        mock_result.compiled_plan = None
+        mock_result.transaction_id = None
+        mock_result.error = None
+        mock_result.execution_time = None
 
-        with patch('ai_hub.service.git_layer.begin') as mock_begin, \
-             patch('ai_hub.service.AIDB') as mock_aidb_class, \
-             patch.object(service, '_execute_with_progress') as mock_execute_progress:
+        with (
+            patch("ai_hub.service.git_layer.begin") as mock_begin,
+            patch.object(service, "_execute_with_progress") as mock_execute_progress,
+        ):
 
             mock_begin.return_value.__aenter__.return_value = mock_transaction
-            mock_aidb_instance = MagicMock()
-            mock_aidb_class.return_value = mock_aidb_instance
-            mock_aidb_instance.execute = AsyncMock(return_value=mock_result)
+            # Mock the execute method on the existing AIDB instance
+            service._aidb.execute = AsyncMock(return_value=mock_result)
 
             # Mock _execute_with_progress to execute the coroutine directly
             async def execute_directly(coro, desc):

@@ -18,6 +18,7 @@ def temp_repo():
 
         # Initialize git repository
         import subprocess
+
         subprocess.run(["git", "init"], cwd=repo_path, check=True)
         subprocess.run(["git", "config", "user.name", "Test User"], cwd=repo_path, check=True)
         subprocess.run(
@@ -55,7 +56,7 @@ services:
       retries: 5
 """
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
         f.write(compose_content)
         f.flush()
         return f.name
@@ -74,17 +75,18 @@ class TestAIHubIntegration:
 
         # Copy test repo to test data directory
         import shutil
+
         shutil.copytree(temp_repo, test_data_dir / "test_repo")
 
         with DockerCompose(
-            filepath=docker_compose_file,
-            compose_file_name="docker-compose.test.yml"
+            filepath=docker_compose_file, compose_file_name="docker-compose.test.yml"
         ) as compose:
             # Wait for service to be healthy
             service_url = f"http://localhost:{compose.get_service_port('ai-hub', 8000)}"
 
             # Wait for health check
             import time
+
             max_retries = 30
             for _ in range(max_retries):
                 try:
@@ -144,7 +146,7 @@ class TestAIHubAPIMocked:
     @pytest.fixture
     def mock_ai_responses(self):
         """Mock AI service responses."""
-        with patch('ai_db.core.ai_agent.AIAgent') as mock_agent:
+        with patch("ai_db.core.ai_agent.AIAgent") as mock_agent:
             mock_instance = mock_agent.return_value
 
             # Mock successful query response
@@ -153,22 +155,19 @@ class TestAIHubAPIMocked:
                 "data": [{"id": 1, "name": "Test User"}],
                 "schema": {"users": {"id": "integer", "name": "string"}},
                 "compiled_plan": "SELECT id, name FROM users",
-                "ai_comment": "Query executed successfully"
+                "ai_comment": "Query executed successfully",
             }
 
             yield mock_instance
 
     def test_query_execution_mocked(self, ai_hub_service, mock_ai_responses):
         """Test query execution with mocked AI responses."""
-        query_data = {
-            "query": "Show me all users",
-            "permissions": "select"
-        }
+        query_data = {"query": "Show me all users", "permissions": "select"}
 
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query",
             json=query_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Should succeed with mocked responses
@@ -180,14 +179,12 @@ class TestAIHubAPIMocked:
 
     def test_view_execution_mocked(self, ai_hub_service, mock_ai_responses):
         """Test view execution with mocked AI responses."""
-        view_data = {
-            "view_name": "user_summary"
-        }
+        view_data = {"view_name": "user_summary"}
 
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query/view",
             json=view_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Should succeed with mocked responses
@@ -200,13 +197,13 @@ class TestAIHubAPIMocked:
         """Test data modification with mocked AI responses."""
         modification_data = {
             "operation": "INSERT INTO users (name) VALUES ('New User')",
-            "permissions": "data_modify"
+            "permissions": "data_modify",
         }
 
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/data",
             json=modification_data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Should succeed with mocked responses
@@ -225,7 +222,7 @@ class TestErrorHandling:
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query",
             data="invalid json",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422  # Validation error
@@ -236,7 +233,7 @@ class TestErrorHandling:
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query",
             json={"permissions": "select"},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422
@@ -245,11 +242,8 @@ class TestErrorHandling:
         """Test handling of invalid permission levels."""
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query",
-            json={
-                "query": "SELECT * FROM users",
-                "permissions": "invalid_permission"
-            },
-            headers={"Content-Type": "application/json"}
+            json={"query": "SELECT * FROM users", "permissions": "invalid_permission"},
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422
@@ -258,10 +252,7 @@ class TestErrorHandling:
         """Test CORS headers are present."""
         response = requests.options(
             f"{ai_hub_service}/api/v1/db/query",
-            headers={
-                "Origin": "http://localhost:3000",
-                "Access-Control-Request-Method": "POST"
-            }
+            headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "POST"},
         )
 
         # Should handle CORS preflight
@@ -270,14 +261,8 @@ class TestErrorHandling:
         # Test actual request with origin
         response = requests.post(
             f"{ai_hub_service}/api/v1/db/query",
-            json={
-                "query": "SELECT 1",
-                "permissions": "select"
-            },
-            headers={
-                "Origin": "http://localhost:3000",
-                "Content-Type": "application/json"
-            }
+            json={"query": "SELECT 1", "permissions": "select"},
+            headers={"Origin": "http://localhost:3000", "Content-Type": "application/json"},
         )
 
         # CORS headers should be present (exact headers depend on FastAPI CORS config)
