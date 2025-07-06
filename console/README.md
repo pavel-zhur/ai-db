@@ -1,24 +1,33 @@
 # Console
 
-An interactive natural language console interface for AI-DB and AI-Frontend, providing a chat-based experience for database operations and UI generation.
+An interactive natural language console interface for AI-DB and AI-Frontend, providing a chat-based experience for database operations and UI generation. This is a Phase 2 POC implementation that demonstrates the complete AI-DB ecosystem integration.
 
 ## Features
 
 - **Natural Language Interface**: Chat with your database using plain English or SQL
-- **Transaction Management**: Explicit BEGIN/COMMIT/ROLLBACK support with visual indicators
-- **Multiple Output Formats**: View results as tables, JSON, or YAML
-- **UI Generation**: Generate React frontends using natural language descriptions
-- **Rich Terminal UI**: Interactive interface with syntax highlighting and progress indicators
-- **Session History**: Complete conversation tracking with trace logging
-- **Safety Features**: Confirmation prompts for destructive operations
+- **Git-based Transaction Management**: Explicit BEGIN/COMMIT/ROLLBACK with full Git transaction isolation
+- **Multiple Output Formats**: View results as tables, JSON, or YAML with Rich formatting
+- **Frontend Generation**: Generate React/TypeScript frontends using Claude Code integration
+- **Rich Terminal UI**: Interactive interface with progress indicators, syntax highlighting, and real-time feedback
+- **Session History**: Complete conversation tracking with markdown trace logging
+- **Safety Features**: Confirmation prompts for destructive operations with smart detection
+- **Async Architecture**: Non-blocking operations with proper progress feedback
+- **Hierarchical Configuration**: Environment variables override config files with full validation
 
 ## Installation
+
+### Prerequisites
+
+- Python 3.13+
+- Poetry (for dependency management)
+- Git (for transaction management)
+- Claude Code CLI (for frontend generation)
 
 ### From Source
 
 ```bash
 cd console
-pip install -e ".[dev]"
+poetry install
 ```
 
 ### Using Docker
@@ -33,6 +42,9 @@ docker run -it -v $(pwd)/data:/data ai-console
 ### Starting the Console
 
 ```bash
+# Run with Poetry
+poetry run console
+
 # Run with default configuration
 console
 
@@ -149,27 +161,31 @@ export CONSOLE_TRACE_FILE=console_trace.log
 
 ## Architecture
 
-The console integrates three main components:
+The console integrates three main library components following Phase 2 standardization:
 
-1. **AI-DB**: Natural language database engine
-2. **AI-Frontend**: UI generation via Claude Code CLI
-3. **Git-Layer**: Transaction management with Git
+1. **AI-DB**: Natural language database engine with async operations
+2. **AI-Frontend**: React/TypeScript UI generation via Claude Code CLI
+3. **Git-Layer**: Git-based transaction management with full isolation
+4. **AI-Shared**: Common protocols and interfaces for loose coupling
 
 ### Key Components
 
-- **ConsoleInterface**: Main interactive loop and command handling
-- **CommandParser**: Parses user input and detects command types
-- **OutputFormatter**: Formats query results in various formats
-- **SessionState**: Maintains conversation history and transaction state
-- **TraceLogger**: Logs all interactions for debugging
+- **ConsoleInterface**: Main interactive loop with dependency injection
+- **CommandParser**: Natural language and SQL command detection with pattern matching
+- **OutputFormatter**: Rich formatting for table, JSON, and YAML output
+- **SessionState**: Transaction and conversation history management
+- **TraceLogger**: Structured logging with markdown session traces
+- **Config**: Hierarchical configuration with Pydantic validation
 
-### Transaction Flow
+### Transaction Flow (Phase 2 Implementation)
 
-1. User starts a transaction with `begin`
-2. Git-Layer creates a branch for isolation
-3. All operations occur within the transaction context
-4. `commit` merges changes to main branch
-5. `rollback` abandons the branch
+1. User starts transaction with `begin` command
+2. Git-Layer creates isolated branch in temporary working directory
+3. All AI-DB and AI-Frontend operations use TransactionProtocol
+4. Operations call `operation_complete()` or `operation_failed()` for Git tracking
+5. `commit` merges changes to main branch and pushes
+6. `rollback` creates rollback branch for debugging, cleans working directory
+7. Automatic cleanup and error handling with proper async context management
 
 ## Development
 
@@ -177,29 +193,35 @@ The console integrates three main components:
 
 ```bash
 # Install development dependencies
-pip install -e ".[dev]"
+poetry install
 
-# Run tests
-pytest
+# Run all tests
+poetry run pytest
 
 # Run with coverage
-pytest --cov=console
+poetry run pytest --cov=console
 
 # Run specific test file
-pytest tests/test_command_parser.py
+poetry run pytest tests/test_command_parser.py
+
+# Run tests with verbose output
+poetry run pytest -v
 ```
 
 ### Code Quality
 
 ```bash
 # Format code
-black src tests
+poetry run black .
 
-# Type checking
-mypy src
+# Type checking (strict mode)
+poetry run mypy .
 
 # Linting
-ruff src tests
+poetry run ruff check .
+
+# Auto-fix linting issues
+poetry run ruff check . --fix
 ```
 
 ### Project Structure
