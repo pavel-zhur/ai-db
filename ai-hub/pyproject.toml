@@ -13,12 +13,14 @@ repository = "https://github.com/pavel-zhur/ai-db"
 packages = [{include = "ai_hub", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = ">=3.13,<3.14"
 ai-shared = {path = "../ai-shared", develop = true}
-fastapi = "^0.104.0"
-uvicorn = "^0.24.0"
-pydantic = "^2.5.0"
-pydantic-settings = "^2.1.0"
+ai-db = {path = "../ai-db", develop = true}
+git-layer = {path = "../git-layer", develop = true}
+fastapi = "^0.115.6"
+uvicorn = "^0.31.1"
+pydantic = "^2.10.4"
+pydantic-settings = "^2.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4"
@@ -26,6 +28,8 @@ pytest-asyncio = "^0.24"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
+testcontainers = "^4.9.0"
+httpx = "^0.28.1"
 
 [tool.poetry.scripts]
 ai-hub = "ai_hub.main:main"
@@ -41,6 +45,8 @@ target-version = ["py313"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
 
 [tool.pytest.ini_options]
