@@ -51,7 +51,7 @@ class AiFrontend:
         request: str,
         schema: Dict[str, Any],
         transaction: TransactionProtocol,
-        project_name: str = "ai-frontend",
+        project_name: str,
     ) -> GenerationResult:
         """Generate a complete frontend based on natural language request.
 

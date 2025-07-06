@@ -118,6 +118,7 @@ async def test_generate_frontend_success(ai_frontend, mock_transaction, sample_s
             request="Create a user management interface",
             schema=sample_schema,
             transaction=mock_transaction,
+            project_name="test-frontend",
         )
 
         assert result.success is True
@@ -154,6 +155,7 @@ async def test_generate_frontend_compilation_failure(ai_frontend, mock_transacti
             request="Create a user interface",
             schema=sample_schema,
             transaction=mock_transaction,
+            project_name="test-frontend",
         )
 
         assert result.success is False
@@ -187,6 +189,7 @@ async def test_generate_frontend_with_retry(ai_frontend, mock_transaction, sampl
             request="Create a user interface",
             schema=sample_schema,
             transaction=mock_transaction,
+            project_name="test-frontend",
         )
 
         assert result.success is True
