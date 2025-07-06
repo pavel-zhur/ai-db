@@ -50,7 +50,15 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I", "N", "UP", "S", "A", "C", "DTZ", "T", "W", "RUF"]
-ignore = ["S101"]  # Allow assert in tests
+ignore = [
+    "S101",   # Allow assert in tests
+    "S102",   # Allow exec() - required for database query execution
+    "S301",   # Allow pickle - required for query plan serialization  
+    "S302",   # Allow marshal - required for RestrictedPython bytecode
+    "S307",   # Allow eval() - required for constraint evaluation in sandbox
+    "C901",   # Allow complex functions - acceptable for database engine
+    "A001",   # Allow PermissionError shadowing - custom exception is intentional
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
