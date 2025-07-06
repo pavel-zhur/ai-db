@@ -1,6 +1,5 @@
 """Tests for utility functions."""
 
-
 import pytest
 
 from ai_frontend.utils import (
