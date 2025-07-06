@@ -15,12 +15,12 @@ packages = [{include = "git_layer", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.13"
 ai-shared = {path = "../ai-shared", develop = true}
-GitPython = "^3.1.0"
+GitPython = "^3.1.40"
 pydantic-settings = "^2.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4"
-pytest-asyncio = "^0.24"
+pytest-asyncio = "^1.0"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
@@ -36,6 +36,8 @@ target-version = ["py313"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
 
 [tool.pytest.ini_options]
