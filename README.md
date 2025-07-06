@@ -75,3 +75,99 @@ Git-layer provides transaction isolation through:
 ## Status
 
 This is a proof of concept exploring how databases might work when AI is the core engine rather than an add-on feature.
+
+## Docker Usage
+
+The AI-DB system uses Docker for containerized deployment. All components are built from a shared base image with proper dependency management.
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Environment variables set (see `.env.example`)
+
+### Building and Running
+
+#### 1. Full System (All Components)
+```bash
+# Build all images
+docker-compose build
+
+# Start all services
+docker-compose up
+
+# Or run in background
+docker-compose up -d
+```
+
+This starts:
+- `ai-hub`: HTTP API server on port 8000
+- `console`: Interactive terminal (attach with `docker attach`)
+- `mcp-ai-db` & `mcp-ai-frontend`: MCP servers
+- `nginx`: Web server on port 80
+
+#### 2. Individual Components
+```bash
+# Build a specific component (from workspace root)
+docker build -f ai-db/Dockerfile -t ai-db .
+docker build -f console/Dockerfile -t console .
+
+# Run individual component
+docker run -it console
+docker run -p 8000:8000 ai-hub
+```
+
+#### 3. Development Mode
+```bash
+# Run with volume mounts for live code changes
+docker-compose -f docker-compose.dev.yml up
+
+# Or use the test-runner for validation
+docker-compose run test-runner
+```
+
+#### 4. Running Tests
+```bash
+# Run all tests in containers
+docker-compose run test-runner
+
+# Test a specific component
+docker run --rm -it ai-db bash -c "poetry install && poetry run pytest"
+```
+
+### Common Operations
+
+```bash
+# View logs
+docker-compose logs -f ai-hub
+docker-compose logs -f console
+
+# Connect to console interactively
+docker-compose exec console bash
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean data)
+docker-compose down -v
+
+# Rebuild after code changes
+docker-compose build --no-cache ai-hub
+```
+
+### Environment Configuration
+
+Create `.env` file from template:
+```bash
+cp .env.example .env
+# Edit .env with your API keys and configuration
+```
+
+Key environment variables:
+- `AI_DB_API_KEY`: OpenAI API key for AI-DB
+- `AI_FRONTEND_API_KEY`: Anthropic API key for frontend generation
+- `GIT_LAYER_REPO_PATH`: Path for git repositories (default: ./data)
+
+### Troubleshooting
+
+- **Build fails with dependency errors**: Ensure you're building from workspace root, not component directory
+- **Container can't find ai-shared**: Check that docker-compose uses correct build context
+- **Permission errors**: The containers run as non-root user; ensure volume permissions are correct
