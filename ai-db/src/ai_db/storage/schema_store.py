@@ -26,7 +26,6 @@ class SchemaStore:
         schema = Schema()
 
         # Load all table schemas
-        schemas_dir = "schemas"
         try:
             schema_files = await self._list_schema_files()
 

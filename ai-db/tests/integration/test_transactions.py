@@ -62,7 +62,7 @@ class TestTransactionIntegration:
 
         # Multiple reads
         data1 = await store.read_table("users")
-        data2 = await store.read_table("users")
+        await store.read_table("users")
         data3 = await store.read_table("products")  # Non-existent
 
         # No escalation should occur

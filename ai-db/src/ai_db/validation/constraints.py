@@ -185,7 +185,7 @@ class ConstraintChecker:
 def check_{constraint.name}(row):
     # Extract column values
     {self._generate_column_extractors(constraint.columns)}
-    
+
     # Evaluate constraint
     try:
         result = {constraint.definition}

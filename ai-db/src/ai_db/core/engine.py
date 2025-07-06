@@ -86,7 +86,7 @@ class Engine:
         self._container.transaction_context.override(transaction_context)
 
         # Create components for this transaction
-        transaction_manager = self._container.transaction_manager()
+        self._container.transaction_manager()
         schema_store = self._container.schema_store()
         yaml_store = self._container.yaml_store()
         view_store = self._container.view_store()

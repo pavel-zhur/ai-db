@@ -106,7 +106,7 @@ class QueryCompiler:
                     raise CompilationError("Import statements are not allowed")
                 elif isinstance(node, ast.ImportFrom):
                     raise CompilationError("Import statements are not allowed")
-                elif isinstance(node, (ast.Exec, ast.Eval)) if hasattr(ast, 'Exec') else False:
+                elif isinstance(node, ast.Exec | ast.Eval) if hasattr(ast, 'Exec') else False:
                     raise CompilationError("Exec/eval statements are not allowed")
                 elif isinstance(node, ast.Global):
                     raise CompilationError("Global statements are not allowed")

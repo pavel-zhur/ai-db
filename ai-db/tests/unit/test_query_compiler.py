@@ -104,7 +104,7 @@ def query_count_by_status(tables):
     users = tables.get("users", [])
     active_count = sum(1 for u in users if u.get("is_active", False))
     inactive_count = sum(1 for u in users if not u.get("is_active", False))
-    
+
     return [
         {"status": "active", "count": active_count},
         {"status": "inactive", "count": inactive_count}
@@ -138,7 +138,7 @@ def query_count_by_status(tables):
 def query_users_with_orders(tables):
     users = tables.get("users", [])
     orders = tables.get("orders", [])
-    
+
     result = []
     for user in users:
         user_orders = [o for o in orders if o.get("user_id") == user.get("id")]
@@ -148,7 +148,7 @@ def query_users_with_orders(tables):
                 "order_id": order.get("id"),
                 "amount": order.get("amount")
             })
-    
+
     return result
 '''
 

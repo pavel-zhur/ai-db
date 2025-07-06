@@ -45,13 +45,13 @@ class AIDB:
     ) -> QueryResult:
         """
         Execute a database query.
-        
+
         Args:
             query: Natural language query or SQL
             permissions: Permission level for the operation
             transaction: Transaction context from git-layer
             context: Optional query context with schema and error history
-            
+
         Returns:
             QueryResult with status, data, and metadata
         """
@@ -100,11 +100,11 @@ class AIDB:
     ) -> QueryResult:
         """
         Execute a pre-compiled query plan.
-        
+
         Args:
             compiled_plan: Serialized query plan from previous compilation
             transaction: Transaction context from git-layer
-            
+
         Returns:
             QueryResult with query results
         """
@@ -143,9 +143,9 @@ class AIDB:
     async def begin_transaction(self, transaction: TransactionProtocol) -> None:
         """
         Begin a new transaction.
-        
+
         This is handled by git-layer, but AI-DB can perform any necessary setup.
-        
+
         Args:
             transaction: Transaction context from git-layer
         """
@@ -155,9 +155,9 @@ class AIDB:
     async def commit_transaction(self, transaction: TransactionProtocol) -> None:
         """
         Commit a transaction.
-        
+
         This is handled by git-layer, but AI-DB can perform any necessary cleanup.
-        
+
         Args:
             transaction: Transaction context from git-layer
         """
@@ -167,23 +167,25 @@ class AIDB:
     async def rollback_transaction(self, transaction: TransactionProtocol) -> None:
         """
         Rollback a transaction.
-        
+
         This is handled by git-layer, but AI-DB can perform any necessary cleanup.
-        
+
         Args:
             transaction: Transaction context from git-layer
         """
         logger.info(f"Rolling back transaction {transaction.id}")
         # Any AI-DB specific transaction cleanup can go here
 
-    async def get_schema(self, transaction: TransactionProtocol, include_semantic_docs: bool = False) -> dict:
+    async def get_schema(
+        self, transaction: TransactionProtocol, include_semantic_docs: bool = False
+    ) -> dict:
         """
         Get the current database schema.
-        
+
         Args:
             transaction: Transaction context from git-layer
             include_semantic_docs: Whether to include semantic documentation
-            
+
         Returns:
             Schema in JSON format
         """
@@ -235,10 +237,10 @@ class AIDB:
     async def init_from_folder(self, transaction: TransactionProtocol, source_folder: str) -> None:
         """
         Initialize database from an existing folder structure.
-        
+
         Copies and validates YAML schemas from source folder.
         Used for setting up AI-DB with seed data.
-        
+
         Args:
             transaction: Transaction context from git-layer
             source_folder: Path to source folder with schemas and data
@@ -287,7 +289,9 @@ class AIDB:
                         table_data = yaml.safe_load(f)
 
                     if table_data is not None and not isinstance(table_data, list):
-                        raise ValueError(f"Invalid table format in {table_file.name} - must be a list")
+                        raise ValueError(
+                            f"Invalid table format in {table_file.name} - must be a list"
+                        )
 
                     # Copy to target
                     target_file = tables_target / table_file.name
@@ -338,7 +342,9 @@ htmlcov/
                     f.write(gitignore_content)
                 logger.info("Created .gitignore")
 
-            await transaction.operation_complete(f"Successfully initialized database from {source_folder}")
+            await transaction.operation_complete(
+                f"Successfully initialized database from {source_folder}"
+            )
             logger.info(f"Database initialized from {source_folder}")
 
         except Exception as e:
