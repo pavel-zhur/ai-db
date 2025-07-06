@@ -1,10 +1,10 @@
 """Utility functions for MCP servers."""
 
 import importlib
-from typing import Any, Optional
+from typing import Optional
 
 
-def try_import(module_name: str, class_name: str) -> Optional[type[Any]]:
+def try_import(module_name: str, class_name: str) -> Optional[type]:
     """Try to import a class from a module."""
     try:
         module = importlib.import_module(module_name)

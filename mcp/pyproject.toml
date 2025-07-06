@@ -3,31 +3,34 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "mcp"
+name = "ai-db-mcp-servers"
 version = "0.1.0"
 description = "MCP servers for AI-DB and AI-Frontend"
 authors = ["AI-DB Team"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/pavel-zhur/ai-db"
-packages = [{include = "mcp", from = "src"}]
+packages = [{include = "ai_mcp", from = "src"}]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = ">=3.13,<3.14"
 ai-shared = {path = "../ai-shared", develop = true}
+ai-db = {path = "../ai-db", develop = true}
+ai-frontend = {path = "../ai-frontend", develop = true}
+git-layer = {path = "../git-layer", develop = true}
 mcp = "^1.0.0"
-pydantic = "^2.5.0"
-pydantic-settings = "^2.1.0"
-asyncio = "^3.4.3"
-structlog = "^23.2.0"
+pydantic = "^2.10"
+pydantic-settings = "^2.7"
+structlog = "^25.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4"
-pytest-asyncio = "^0.24"
+pytest-asyncio = "^1.0"
 pytest-mock = "^3.14"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
+testcontainers = "^4.9"
 
 [tool.poetry.scripts]
 ai-db-mcp = "mcp.ai_db_server:main"
@@ -36,6 +39,24 @@ ai-frontend-mcp = "mcp.ai_frontend_server:main"
 [tool.mypy]
 python_version = "3.13"
 strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
 
 [tool.black]
 line-length = 100
@@ -44,7 +65,10 @@ target-version = ["py313"]
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
+ignore = ["S101", "S603", "S607"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

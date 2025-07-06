@@ -1,153 +1,196 @@
 # AI-DB/AI-Frontend MCP Servers
 
-This package provides Model Context Protocol (MCP) servers for AI-DB and AI-Frontend, exposing their functionality to MCP-compatible AI tools.
+This package provides Model Context Protocol (MCP) servers for AI-DB and AI-Frontend, exposing their functionality to MCP-compatible AI tools like Claude Desktop.
 
 ## Overview
 
 The package includes two separate MCP servers:
 
-1. **AI-DB MCP Server** (`ai-db-mcp`) - Exposes database operations
-2. **AI-Frontend MCP Server** (`ai-frontend-mcp`) - Exposes frontend generation
+1. **AI-DB MCP Server** - Exposes database operations with full CRUD, schema management, and transaction support
+2. **AI-Frontend MCP Server** - Exposes React frontend generation and management capabilities
+
+Both servers use the standardized `TransactionProtocol` from ai-shared for consistent transaction management across the ecosystem.
 
 ## Installation
 
 ```bash
-pip install -e .
-```
+# Navigate to the MCP directory
+cd /workspace/mcp
 
-For development with mock implementations:
-```bash
-pip install -e ".[dev]"
+# Install with Poetry (recommended)
+poetry install
+
+# Or install with pip
+pip install -e .
 ```
 
 ## Usage
 
-### AI-DB MCP Server
+### Running with Poetry (Recommended)
 
 ```bash
-# With real implementations (when available)
-ai-db-mcp
+# AI-DB MCP Server
+poetry run python -m ai_mcp.ai_db_server
 
-# With mock implementations (for testing)
-AI_DB_USE_MOCKS=true ai-db-mcp
+# AI-Frontend MCP Server  
+poetry run python -m ai_mcp.ai_frontend_server
+
+# With mocks for testing
+AI_DB_USE_MOCKS=true poetry run python -m ai_mcp.ai_db_server
+AI_FRONTEND_USE_MOCKS=true poetry run python -m ai_mcp.ai_frontend_server
 ```
 
-### AI-Frontend MCP Server
+### Programmatic Usage
 
-```bash
-# With real implementations (when available)
-ai-frontend-mcp
+```python
+import asyncio
+from ai_mcp import create_ai_db_server, create_ai_frontend_server
+from ai_mcp import AIDBMCPConfig, AIFrontendMCPConfig
 
-# With mock implementations (for testing)
-AI_FRONTEND_USE_MOCKS=true ai-frontend-mcp
+async def main():
+    # Create AI-DB server
+    db_config = AIDBMCPConfig(use_mocks=True)
+    db_server = await create_ai_db_server(db_config)
+    
+    # Create AI-Frontend server
+    frontend_config = AIFrontendMCPConfig(use_mocks=True)
+    frontend_server = await create_ai_frontend_server(frontend_config)
+
+asyncio.run(main())
 ```
 
 ## Available Tools
 
 ### AI-DB Tools
 
-1. **schema_modify** - Modify table schemas, relationships, and constraints
-2. **data_modify** - Insert, update, and delete data
-3. **select** - Execute queries with joins and aggregations
-4. **view_modify** - Create and modify views
-5. **execute_compiled** - Execute pre-compiled query plans
-6. **begin_transaction** - Start a new transaction
-7. **commit_transaction** - Commit an active transaction
-8. **rollback_transaction** - Rollback an active transaction
-9. **get_schema** - Get current database schema with semantic descriptions
+1. **schema_modify** - Modify database schemas, tables, and relationships
+2. **data_modify** - Insert, update, and delete data operations
+3. **select** - Execute SELECT queries with joins and aggregations
+4. **view_modify** - Create and modify database views
+5. **execute_compiled** - Execute pre-compiled query plans for performance
+6. **compile_query** - Compile natural language to optimized query plans
+7. **get_schema** - Get current database schema with semantic descriptions
+8. **init_from_folder** - Initialize database from existing schema files
 
 ### AI-Frontend Tools
 
-1. **generate_frontend** - Generate or modify React components using natural language
-2. **get_frontend_info** - Get information about generated components
+1. **generate_frontend** - Generate complete React frontends from natural language requests
+2. **update_frontend** - Update existing frontends with new requirements
+3. **get_frontend_schema** - Get current frontend schema and structure
+4. **init_frontend_from_folder** - Initialize frontend from existing seed files
 
 ## Configuration
 
-Configuration can be set via environment variables:
+Configuration uses Pydantic BaseSettings with environment variable support:
 
-### AI-DB Server
+### AI-DB Server Environment Variables
 
 - `AI_DB_LOG_LEVEL` - Logging level (default: INFO)
 - `AI_DB_LOG_FORMAT` - Log format: "json" or "console" (default: json)
 - `AI_DB_USE_MOCKS` - Use mock implementations (default: false)
 - `AI_DB_GIT_REPO_PATH` - Git repository path (default: /workspace/data)
-- `AI_DB_MAX_RETRY_ATTEMPTS` - Max retry attempts for operations (default: 3)
-- `AI_DB_OPERATION_TIMEOUT` - Operation timeout in seconds (default: 300)
+- `AI_DB_AI_API_KEY` - AI API key for query processing
+- `AI_DB_AI_API_BASE` - AI API base URL (default: https://api.openai.com/v1)
+- `AI_DB_AI_MODEL` - AI model to use (default: gpt-4)
+- `AI_DB_AI_TEMPERATURE` - AI temperature setting (default: 0.1)
 
-### AI-Frontend Server
+### AI-Frontend Server Environment Variables
 
 - `AI_FRONTEND_LOG_LEVEL` - Logging level (default: INFO)
 - `AI_FRONTEND_LOG_FORMAT` - Log format: "json" or "console" (default: json)
 - `AI_FRONTEND_USE_MOCKS` - Use mock implementations (default: false)
 - `AI_FRONTEND_GIT_REPO_PATH` - Git repository path (default: /workspace/frontend)
-- `AI_FRONTEND_CLAUDE_CODE_TIMEOUT` - Claude Code timeout in seconds (default: 600)
+- `AI_FRONTEND_CLAUDE_CODE_DOCKER_IMAGE` - Docker image for Claude Code (default: anthropic/claude-code)
+- `AI_FRONTEND_MAX_ITERATIONS` - Max generation iterations (default: 5)
+- `AI_FRONTEND_CLAUDE_CODE_TIMEOUT` - Timeout in seconds (default: 600)
 
 ## Development
 
 ### Running Tests
 
 ```bash
-pytest
+# Run all tests
+poetry run pytest
+
+# Run specific test suites
+poetry run pytest tests/integration/
+poetry run pytest tests/unit/
 ```
 
-### Type Checking
+### Code Quality
 
 ```bash
-mypy src tests
-```
+# Type checking
+poetry run mypy .
 
-### Code Formatting
+# Linting
+poetry run ruff check .
 
-```bash
-black src tests
-ruff check src tests
+# Formatting
+poetry run black .
+
+# Fix linting issues
+poetry run ruff check --fix .
 ```
 
 ## Architecture
 
-The MCP servers follow these principles:
+### Key Design Principles
 
-1. **Separate Servers** - AI-DB and AI-Frontend run as independent MCP servers
-2. **Tool-Based Interface** - Each operation is exposed as a discrete MCP tool
-3. **Transaction Support** - Optional transaction support for grouped operations
-4. **Type Safety** - Full type annotations with Pydantic models
+1. **Standards Compliance** - Uses ai-shared.TransactionProtocol for transaction management
+2. **Real Library Integration** - Direct integration with ai-db, ai-frontend, and git-layer
+3. **Type Safety** - Comprehensive type annotations with Pydantic models
+4. **Async/Await** - Proper async patterns throughout for performance
 5. **Mock Support** - Built-in mocks for testing and development
+6. **Tool-Based Interface** - Each operation exposed as a discrete MCP tool
+
+### Transaction Management
+
+Both servers use the standardized TransactionProtocol:
+
+```python
+async with self._create_transaction("Operation description") as transaction:
+    result = await self._ai_db.execute(query, permissions, transaction)
+    # Transaction auto-commits on success, rolls back on exception
+```
+
+### Error Handling
+
+Follows CLAUDE.md guidelines:
+- Let exceptions propagate to appropriate boundary layers
+- Use structured logging with different levels (ERROR, WARN, INFO)
+- Trust the type system - avoid defensive programming
 
 ## Integration Requirements
 
 ### Dependencies
 
-The MCP servers expect these packages to be available when running without mocks:
+When running without mocks, these packages must be available:
 
-- `ai_db` - The AI-DB core engine (from `/workspace/ai-db`)
-- `ai_frontend` - The AI-Frontend engine (from `/workspace/ai-frontend`)
-- `git_layer` - The Git-Layer transaction support (from `/workspace/git-layer`)
+- `ai-shared` - Shared protocols and interfaces
+- `ai-db` - AI-DB core engine (from `/workspace/ai-db`)
+- `ai-frontend` - AI-Frontend engine (from `/workspace/ai-frontend`)
+- `git-layer` - Git transaction support (from `/workspace/git-layer`)
 
-### Protocol Interfaces
+### MCP Client Integration
 
-The MCP servers define protocol interfaces that the dependencies must implement:
-
-- `AIDBProtocol` - Interface for AI-DB implementations
-- `AIFrontendProtocol` - Interface for AI-Frontend implementations
-- `GitLayerProtocol` - Interface for Git-Layer implementations
-
-See `src/protocols.py` for the complete interface definitions.
-
-## Integration with MCP Clients
-
-The servers use stdio transport and can be integrated with any MCP-compatible client. Example configuration for Claude Desktop:
+Example Claude Desktop configuration:
 
 ```json
 {
   "mcpServers": {
     "ai-db": {
-      "command": "ai-db-mcp",
+      "command": "poetry",
+      "args": ["run", "python", "-m", "ai_mcp.ai_db_server"],
+      "cwd": "/workspace/mcp",
       "env": {
         "AI_DB_USE_MOCKS": "true"
       }
     },
     "ai-frontend": {
-      "command": "ai-frontend-mcp",
+      "command": "poetry", 
+      "args": ["run", "python", "-m", "ai_mcp.ai_frontend_server"],
+      "cwd": "/workspace/mcp",
       "env": {
         "AI_FRONTEND_USE_MOCKS": "true"
       }
@@ -156,6 +199,22 @@ The servers use stdio transport and can be integrated with any MCP-compatible cl
 }
 ```
 
+## Package Structure
+
+```
+src/ai_mcp/
+├── __init__.py          # Main exports
+├── ai_db_server.py      # AI-DB MCP server
+├── ai_frontend_server.py # AI-Frontend MCP server  
+├── config.py            # Pydantic configuration classes
+├── protocols.py         # Protocol interfaces
+├── models/              # Pydantic data models
+├── tools/               # MCP tool implementations
+│   ├── ai_db/          # AI-DB tools
+│   └── ai_frontend/    # AI-Frontend tools
+└── mocks/              # Mock implementations for testing
+```
+
 ## License
 
-[License information here]
+MIT License - See LICENSE file for details.

@@ -1,11 +1,10 @@
 """Pytest configuration and fixtures."""
 
 import pytest
-from typing import Any
 import structlog
 
-from src.mocks import MockAIDB, MockAIFrontend, MockGitLayer
-from src.config import AIDBConfig, AIFrontendConfig
+from ai_mcp.config import AIDBMCPConfig, AIFrontendMCPConfig
+from ai_mcp.mocks import MockAIDB, MockAIFrontend, MockGitLayer
 
 
 @pytest.fixture
@@ -33,9 +32,9 @@ def mock_git_layer() -> MockGitLayer:
 
 
 @pytest.fixture
-def ai_db_config() -> AIDBConfig:
+def ai_db_config() -> AIDBMCPConfig:
     """Create AI-DB config for testing."""
-    return AIDBConfig(
+    return AIDBMCPConfig(
         use_mocks=True,
         log_level="DEBUG",
         log_format="console",
@@ -43,9 +42,9 @@ def ai_db_config() -> AIDBConfig:
 
 
 @pytest.fixture
-def ai_frontend_config() -> AIFrontendConfig:
+def ai_frontend_config() -> AIFrontendMCPConfig:
     """Create AI-Frontend config for testing."""
-    return AIFrontendConfig(
+    return AIFrontendMCPConfig(
         use_mocks=True,
         log_level="DEBUG",
         log_format="console",

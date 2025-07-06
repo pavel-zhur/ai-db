@@ -7,29 +7,27 @@ from .ai_db_server import create_ai_db_server
 from .ai_frontend_server import create_ai_frontend_server
 
 # Export configuration classes
-from .config import AIDBConfig, AIFrontendConfig, ServerConfig
+from .config import AIDBMCPConfig, AIFrontendMCPConfig, MCPServerConfig
 
 # Export protocols for type hints
 from .protocols import (
     AIDBProtocol,
     AIFrontendProtocol,
+    GenerationResult,
     GitLayerProtocol,
-    TransactionContext,
-    AIDBQueryResult,
-    AIFrontendResult,
+    QueryResult,
 )
 
 __all__ = [
     "__version__",
     "create_ai_db_server",
     "create_ai_frontend_server",
-    "AIDBConfig",
-    "AIFrontendConfig",
-    "ServerConfig",
+    "AIDBMCPConfig",
+    "AIFrontendMCPConfig",
+    "MCPServerConfig",
     "AIDBProtocol",
     "AIFrontendProtocol",
     "GitLayerProtocol",
-    "TransactionContext",
-    "AIDBQueryResult",
-    "AIFrontendResult",
+    "QueryResult",
+    "GenerationResult",
 ]

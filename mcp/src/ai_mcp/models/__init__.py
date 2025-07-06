@@ -1,14 +1,14 @@
 """Data models for MCP server."""
 
 from .ai_db import (
-    PermissionLevel,
     DataLossIndicator,
+    PermissionLevel,
     QueryRequest,
     QueryResponse,
-    TransactionRequest,
-    TransactionResponse,
     SchemaRequest,
     SchemaResponse,
+    TransactionRequest,
+    TransactionResponse,
 )
 from .ai_frontend import (
     FrontendRequest,
