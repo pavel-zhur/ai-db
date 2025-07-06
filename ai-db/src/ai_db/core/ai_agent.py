@@ -2,23 +2,20 @@
 
 import json
 import logging
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import asdict
 
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from ai_db.core.models import (
-    Schema, 
-    PermissionLevel, 
-    AIOperation,
-    QueryContext,
-    DataLossIndicator,
-)
 from ai_db.config import get_config
+from ai_db.core.models import (
+    AIOperation,
+    PermissionLevel,
+    QueryContext,
+    Schema,
+)
 from ai_db.exceptions import AIError, PermissionError
 
 logger = logging.getLogger(__name__)
@@ -26,10 +23,10 @@ logger = logging.getLogger(__name__)
 
 class OperationPlan(BaseModel):
     """Plan for executing a database operation."""
-    
+
     operation_type: str = Field(description="Type of operation: select, insert, update, delete, create_table, alter_table, drop_table, create_view, drop_view")
     permission_level: str = Field(description="Required permission level: select, data_modify, schema_modify, view_modify")
-    affected_tables: List[str] = Field(description="List of tables affected by this operation")
+    affected_tables: list[str] = Field(description="List of tables affected by this operation")
     requires_python_generation: bool = Field(description="Whether this operation requires Python code generation")
     data_loss_indicator: str = Field(description="Potential data loss: none, probable, yes")
     confidence: float = Field(description="Confidence in the interpretation (0-1)")
@@ -38,7 +35,7 @@ class OperationPlan(BaseModel):
 
 class FileUpdate(BaseModel):
     """File update operation."""
-    
+
     path: str = Field(description="Relative file path")
     content: str = Field(description="Complete new file content")
     operation: str = Field(description="Operation type: create, update, delete")
@@ -46,16 +43,16 @@ class FileUpdate(BaseModel):
 
 class ExecutionPlan(BaseModel):
     """Complete execution plan for the operation."""
-    
-    file_updates: List[FileUpdate] = Field(description="List of file updates to perform")
-    python_code: Optional[str] = Field(description="Python code for SELECT queries or views")
-    validation_queries: List[str] = Field(description="Queries to validate after execution")
-    error: Optional[str] = Field(description="Error message if operation cannot be executed")
+
+    file_updates: list[FileUpdate] = Field(description="List of file updates to perform")
+    python_code: str | None = Field(description="Python code for SELECT queries or views")
+    validation_queries: list[str] = Field(description="Queries to validate after execution")
+    error: str | None = Field(description="Error message if operation cannot be executed")
 
 
 class AIAgent:
     """AI agent for database operations."""
-    
+
     def __init__(self) -> None:
         config = get_config()
         self._llm = ChatOpenAI(
@@ -66,42 +63,42 @@ class AIAgent:
             timeout=config.timeout_seconds,
         )
         self._max_retries = config.max_retries
-        
+
         # Initialize output parsers
         self._operation_parser = JsonOutputParser(pydantic_object=OperationPlan)
         self._execution_parser = JsonOutputParser(pydantic_object=ExecutionPlan)
-    
+
     async def analyze_query(
-        self, 
-        query: str, 
+        self,
+        query: str,
         permissions: PermissionLevel,
         context: QueryContext,
     ) -> AIOperation:
         """Analyze a query and determine the operation type and requirements."""
-        
+
         # Build system prompt with schema context
         system_prompt = self._build_analysis_prompt(context.schema)
-        
+
         # Add error context if retrying
         error_context = ""
         if context.recent_errors:
             error_context = "\n\nPrevious errors:\n" + "\n".join(context.recent_errors[-3:])
-        
+
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Query: {query}\nGranted permissions: {permissions.value}{error_context}")
         ]
-        
+
         try:
             # Get operation plan from AI
             response = await self._llm.ainvoke(messages)
             plan = self._operation_parser.parse(response.content)
-            
+
             # Check permissions
             required_perm = PermissionLevel(plan.permission_level)
             if not self._check_permission(permissions, required_perm):
                 raise PermissionError(required_perm.value, permissions.value)
-            
+
             # Create AI operation
             operation = AIOperation(
                 operation_type=plan.operation_type,
@@ -110,18 +107,18 @@ class AIAgent:
                 requires_python_generation=plan.requires_python_generation,
                 validation_required=True,
             )
-            
+
             # Log the interpretation
             logger.info(f"AI interpretation: {plan.interpretation} (confidence: {plan.confidence})")
-            
+
             return operation
-            
+
         except PermissionError:
             raise
         except Exception as e:
             logger.error(f"Failed to analyze query: {e}")
-            raise AIError(f"Failed to analyze query: {str(e)}", context.retry_count)
-    
+            raise AIError(f"Failed to analyze query: {e!s}", context.retry_count)
+
     async def generate_execution_plan(
         self,
         query: str,
@@ -129,46 +126,46 @@ class AIAgent:
         context: QueryContext,
     ) -> ExecutionPlan:
         """Generate the execution plan for an operation."""
-        
+
         # Build execution prompt
         system_prompt = self._build_execution_prompt(operation, context.schema)
-        
+
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Query: {query}\nOperation type: {operation.operation_type}")
         ]
-        
+
         try:
             response = await self._llm.ainvoke(messages)
             plan = self._execution_parser.parse(response.content)
-            
+
             # Store Python code if generated
             if plan.python_code:
                 operation.python_code = plan.python_code
-            
+
             # Convert file updates
             operation.file_updates = {
-                update.path: update.content 
+                update.path: update.content
                 for update in plan.file_updates
             }
-            
+
             return plan
-            
+
         except Exception as e:
             logger.error(f"Failed to generate execution plan: {e}")
-            raise AIError(f"Failed to generate execution plan: {str(e)}", context.retry_count)
-    
+            raise AIError(f"Failed to generate execution plan: {e!s}", context.retry_count)
+
     async def handle_validation_error(
         self,
         error_message: str,
         operation: AIOperation,
         context: QueryContext,
-    ) -> Optional[ExecutionPlan]:
+    ) -> ExecutionPlan | None:
         """Handle validation errors and attempt to fix them."""
-        
+
         if context.retry_count >= self._max_retries:
             return None
-        
+
         system_prompt = """You are an AI database engine. A validation error occurred during execution.
 Analyze the error and generate a fixed execution plan if possible.
 
@@ -179,7 +176,7 @@ Previous operation:
 {operation_details}
 
 Respond with a new ExecutionPlan that fixes the validation error, or set error field if unfixable."""
-        
+
         messages = [
             SystemMessage(content=system_prompt.format(
                 schema_context=self._format_schema_context(context.schema),
@@ -187,33 +184,33 @@ Respond with a new ExecutionPlan that fixes the validation error, or set error f
             )),
             HumanMessage(content=f"Validation error: {error_message}")
         ]
-        
+
         try:
             response = await self._llm.ainvoke(messages)
             plan = self._execution_parser.parse(response.content)
-            
+
             if plan.error:
                 return None
-            
+
             # Update operation with new plan
             if plan.python_code:
                 operation.python_code = plan.python_code
-            
+
             operation.file_updates = {
-                update.path: update.content 
+                update.path: update.content
                 for update in plan.file_updates
             }
-            
+
             return plan
-            
+
         except Exception as e:
             logger.error(f"Failed to handle validation error: {e}")
             return None
-    
-    def _build_analysis_prompt(self, schema: Optional[Schema]) -> str:
+
+    def _build_analysis_prompt(self, schema: Schema | None) -> str:
         """Build the system prompt for query analysis."""
         schema_context = self._format_schema_context(schema) if schema else "No schema loaded yet."
-        
+
         return f"""You are an AI database engine. Analyze the given query and determine:
 1. The type of operation (select, insert, update, delete, create_table, alter_table, drop_table, create_view, drop_view)
 2. Required permission level
@@ -225,11 +222,11 @@ Current database schema and documentation:
 {schema_context}
 
 Respond in JSON format matching the OperationPlan schema."""
-    
-    def _build_execution_prompt(self, operation: AIOperation, schema: Optional[Schema]) -> str:
+
+    def _build_execution_prompt(self, operation: AIOperation, schema: Schema | None) -> str:
         """Build the system prompt for execution planning."""
         schema_context = self._format_schema_context(schema) if schema else "No schema loaded yet."
-        
+
         if operation.operation_type == "select" or operation.operation_type == "create_view":
             return f"""You are an AI database engine. Generate pure Python code for the query.
 
@@ -244,7 +241,7 @@ Requirements:
 - For views, create a reusable function
 
 Respond in JSON format with ExecutionPlan including python_code field."""
-        
+
         else:
             return f"""You are an AI database engine. Generate file updates for the operation.
 
@@ -260,18 +257,18 @@ Generate complete file contents for all affected files.
 Ensure data integrity and constraint compliance.
 
 Respond in JSON format with ExecutionPlan including file_updates list."""
-    
-    def _format_schema_context(self, schema: Optional[Schema]) -> str:
+
+    def _format_schema_context(self, schema: Schema | None) -> str:
         """Format schema information for AI context."""
         if not schema:
             return "No schema defined yet."
-        
+
         lines = ["Tables:"]
         for table_name, table in schema.tables.items():
             lines.append(f"\n{table_name}:")
             if table.description:
                 lines.append(f"  Description: {table.description}")
-            
+
             lines.append("  Columns:")
             for col in table.columns:
                 col_def = f"    - {col.name}: {col.type}"
@@ -282,7 +279,7 @@ Respond in JSON format with ExecutionPlan including file_updates list."""
                 if col.description:
                     col_def += f" -- {col.description}"
                 lines.append(col_def)
-            
+
             if table.constraints:
                 lines.append("  Constraints:")
                 for const in table.constraints:
@@ -292,19 +289,19 @@ Respond in JSON format with ExecutionPlan including file_updates list."""
                     if const.referenced_table:
                         const_def += f" REFERENCES {const.referenced_table}({', '.join(const.referenced_columns or [])})"
                     lines.append(const_def)
-        
+
         if schema.views:
             lines.append("\nViews:")
             for view_name in schema.views:
                 lines.append(f"  - {view_name}")
-        
+
         if schema.semantic_documentation:
             lines.append("\nSemantic Documentation:")
             for key, doc in schema.semantic_documentation.items():
                 lines.append(f"  {key}: {doc}")
-        
+
         return "\n".join(lines)
-    
+
     def _check_permission(self, granted: PermissionLevel, required: PermissionLevel) -> bool:
         """Check if granted permission level is sufficient."""
         permission_hierarchy = {
@@ -313,5 +310,5 @@ Respond in JSON format with ExecutionPlan including file_updates list."""
             PermissionLevel.VIEW_MODIFY: 2,
             PermissionLevel.SCHEMA_MODIFY: 3,
         }
-        
+
         return permission_hierarchy.get(granted, -1) >= permission_hierarchy.get(required, 999)

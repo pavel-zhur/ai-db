@@ -1,11 +1,9 @@
 """Constraint checking for AI-DB."""
 
 import logging
-from typing import Dict, List, Any, Optional, Set
-from collections import defaultdict
+from typing import Any
 
-from ai_db.core.models import Table, Constraint, ConstraintType
-from ai_db.exceptions import ConstraintViolationError
+from ai_db.core.models import Constraint, ConstraintType, Table
 from ai_db.validation.sandbox import SafeExecutor
 
 logger = logging.getLogger(__name__)
@@ -13,19 +11,19 @@ logger = logging.getLogger(__name__)
 
 class ConstraintChecker:
     """Checks database constraints."""
-    
+
     def __init__(self, safe_executor: SafeExecutor) -> None:
         self._safe_executor = safe_executor
-    
+
     async def check_constraints(
         self,
         table: Table,
-        data: List[Dict[str, Any]],
-        all_tables_data: Dict[str, List[Dict[str, Any]]],
-    ) -> List[str]:
+        data: list[dict[str, Any]],
+        all_tables_data: dict[str, list[dict[str, Any]]],
+    ) -> list[str]:
         """Check all constraints for table data."""
         errors = []
-        
+
         for constraint in table.constraints:
             try:
                 if constraint.type == ConstraintType.PRIMARY_KEY:
@@ -39,19 +37,19 @@ class ConstraintChecker:
                 elif constraint.type == ConstraintType.CHECK:
                     await self._check_check_constraint(constraint, data, errors)
             except Exception as e:
-                errors.append(f"Error checking constraint {constraint.name}: {str(e)}")
-        
+                errors.append(f"Error checking constraint {constraint.name}: {e!s}")
+
         return errors
-    
+
     def _check_primary_key(
-        self, 
-        constraint: Constraint, 
-        data: List[Dict[str, Any]], 
-        errors: List[str],
+        self,
+        constraint: Constraint,
+        data: list[dict[str, Any]],
+        errors: list[str],
     ) -> None:
         """Check primary key constraint."""
-        seen_keys: Set[tuple] = set()
-        
+        seen_keys: set[tuple] = set()
+
         for i, row in enumerate(data):
             # Extract key values
             key_values = []
@@ -63,27 +61,27 @@ class ConstraintChecker:
                     )
                     continue
                 key_values.append(value)
-            
+
             if not key_values:
                 continue
-                
+
             key_tuple = tuple(key_values)
             if key_tuple in seen_keys:
                 errors.append(
-                    f"Row {i}: Duplicate primary key {dict(zip(constraint.columns, key_values))}"
+                    f"Row {i}: Duplicate primary key {dict(zip(constraint.columns, key_values, strict=False))}"
                 )
             else:
                 seen_keys.add(key_tuple)
-    
+
     def _check_unique(
-        self, 
-        constraint: Constraint, 
-        data: List[Dict[str, Any]], 
-        errors: List[str],
+        self,
+        constraint: Constraint,
+        data: list[dict[str, Any]],
+        errors: list[str],
     ) -> None:
         """Check unique constraint."""
-        seen_values: Set[tuple] = set()
-        
+        seen_values: set[tuple] = set()
+
         for i, row in enumerate(data):
             # Extract values
             values = []
@@ -93,43 +91,43 @@ class ConstraintChecker:
                 values.append(value)
                 if value is not None:
                     all_null = False
-            
+
             # Skip if all values are NULL
             if all_null:
                 continue
-            
+
             value_tuple = tuple(values)
             if value_tuple in seen_values:
                 errors.append(
-                    f"Row {i}: Duplicate unique constraint {dict(zip(constraint.columns, values))}"
+                    f"Row {i}: Duplicate unique constraint {dict(zip(constraint.columns, values, strict=False))}"
                 )
             else:
                 seen_values.add(value_tuple)
-    
+
     def _check_not_null(
-        self, 
-        constraint: Constraint, 
-        data: List[Dict[str, Any]], 
-        errors: List[str],
+        self,
+        constraint: Constraint,
+        data: list[dict[str, Any]],
+        errors: list[str],
     ) -> None:
         """Check NOT NULL constraint."""
         for i, row in enumerate(data):
             for col in constraint.columns:
                 if row.get(col) is None:
                     errors.append(f"Row {i}: Column '{col}' cannot be NULL")
-    
+
     def _check_foreign_key(
         self,
         constraint: Constraint,
-        data: List[Dict[str, Any]],
-        all_tables_data: Dict[str, List[Dict[str, Any]]],
-        errors: List[str],
+        data: list[dict[str, Any]],
+        all_tables_data: dict[str, list[dict[str, Any]]],
+        errors: list[str],
     ) -> None:
         """Check foreign key constraint."""
         if not constraint.referenced_table or not constraint.referenced_columns:
             errors.append(f"Foreign key {constraint.name} missing reference information")
             return
-        
+
         # Get referenced table data
         ref_data = all_tables_data.get(constraint.referenced_table, [])
         if not ref_data:
@@ -141,15 +139,15 @@ class ConstraintChecker:
                         f"Row {i}: Foreign key references non-existent table {constraint.referenced_table}"
                     )
             return
-        
+
         # Build index of referenced values
-        ref_index: Set[tuple] = set()
+        ref_index: set[tuple] = set()
         for ref_row in ref_data:
             ref_values = []
             for col in constraint.referenced_columns:
                 ref_values.append(ref_row.get(col))
             ref_index.add(tuple(ref_values))
-        
+
         # Check each row
         for i, row in enumerate(data):
             fk_values = []
@@ -159,29 +157,29 @@ class ConstraintChecker:
                 fk_values.append(value)
                 if value is not None:
                     all_null = False
-            
+
             # Skip if all FK columns are NULL
             if all_null:
                 continue
-            
+
             fk_tuple = tuple(fk_values)
             if fk_tuple not in ref_index:
                 errors.append(
-                    f"Row {i}: Foreign key violation - {dict(zip(constraint.columns, fk_values))} "
+                    f"Row {i}: Foreign key violation - {dict(zip(constraint.columns, fk_values, strict=False))} "
                     f"not found in {constraint.referenced_table}"
                 )
-    
+
     async def _check_check_constraint(
         self,
         constraint: Constraint,
-        data: List[Dict[str, Any]],
-        errors: List[str],
+        data: list[dict[str, Any]],
+        errors: list[str],
     ) -> None:
         """Check CHECK constraint using Python expression."""
         if not constraint.definition:
             errors.append(f"CHECK constraint {constraint.name} has no definition")
             return
-        
+
         # Generate validation function
         func_code = f"""
 def check_{constraint.name}(row):
@@ -195,17 +193,17 @@ def check_{constraint.name}(row):
     except:
         return False
 """
-        
+
         # Execute safely
         check_func = await self._safe_executor.execute_function(
-            func_code, 
+            func_code,
             f"check_{constraint.name}"
         )
-        
+
         if not check_func:
             errors.append(f"Failed to compile CHECK constraint {constraint.name}")
             return
-        
+
         # Check each row
         for i, row in enumerate(data):
             try:
@@ -215,10 +213,10 @@ def check_{constraint.name}(row):
                     )
             except Exception as e:
                 errors.append(
-                    f"Row {i}: Error evaluating CHECK constraint {constraint.name}: {str(e)}"
+                    f"Row {i}: Error evaluating CHECK constraint {constraint.name}: {e!s}"
                 )
-    
-    def _generate_column_extractors(self, columns: List[str]) -> str:
+
+    def _generate_column_extractors(self, columns: list[str]) -> str:
         """Generate code to extract column values."""
         lines = []
         for col in columns:

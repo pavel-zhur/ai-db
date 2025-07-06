@@ -1,19 +1,20 @@
 """Pytest configuration and fixtures."""
 
-import pytest
-import tempfile
 import shutil
+import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, Dict, Any
-
-from pathlib import Path as PathType
+from typing import Any
 from unittest.mock import AsyncMock
+
+import pytest
 from ai_shared.protocols import TransactionProtocol
+
 from ai_db.core.ai_agent_stub import AIAgentStub
 
 
 @pytest.fixture
-def temp_dir() -> Generator[Path, None, None]:
+def temp_dir() -> Generator[Path]:
     """Create a temporary directory for tests."""
     temp_path = Path(tempfile.mkdtemp())
     yield temp_path
@@ -33,7 +34,7 @@ def transaction_context(temp_dir: Path) -> TransactionProtocol:
 
 
 @pytest.fixture
-def sample_schema() -> Dict[str, Any]:
+def sample_schema() -> dict[str, Any]:
     """Sample schema for testing."""
     return {
         "name": "users",
@@ -98,7 +99,7 @@ def sample_schema() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_data() -> list[Dict[str, Any]]:
+def sample_data() -> list[dict[str, Any]]:
     """Sample user data for testing."""
     return [
         {
@@ -126,7 +127,7 @@ def sample_data() -> list[Dict[str, Any]]:
 
 
 @pytest.fixture
-def mock_ai_response() -> Dict[str, Any]:
+def mock_ai_response() -> dict[str, Any]:
     """Mock AI response for testing."""
     return {
         "operation_type": "select",
@@ -150,11 +151,12 @@ def use_ai_stub(monkeypatch):
     """Automatically use AI stub for all tests."""
     # Replace AIAgent imports wherever they're used
     monkeypatch.setattr('ai_db.core.engine.AIAgent', AIAgentStub)
-    
+
     # Also ensure the dependency injection container uses the stub
-    from ai_db.core.engine import DIContainer
     from dependency_injector import providers
-    
+
+    from ai_db.core.engine import DIContainer
+
     # Override the AI agent provider
     DIContainer.ai_agent.override(providers.Singleton(AIAgentStub))
 
@@ -162,20 +164,20 @@ def use_ai_stub(monkeypatch):
 # Mock transaction context for integration tests
 class MockTransactionContext:
     """Mock transaction context for integration tests."""
-    
+
     def __init__(self, transaction_id: str, path: str):
         self.id = transaction_id
         self.path = path
         self._write_escalated = False
-    
+
     async def write_escalation_required(self) -> None:
         """Mock write escalation."""
         self._write_escalated = True
-    
+
     async def operation_complete(self, operation_type: str) -> None:
         """Mock operation completion."""
         pass
-    
+
     async def operation_failed(self, error: str) -> None:
         """Mock operation failure."""
         pass

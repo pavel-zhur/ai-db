@@ -2,12 +2,12 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 
 class PermissionLevel(Enum):
     """Permission levels for database operations."""
-    
+
     SELECT = "select"
     DATA_MODIFY = "data_modify"
     SCHEMA_MODIFY = "schema_modify"
@@ -16,7 +16,7 @@ class PermissionLevel(Enum):
 
 class DataLossIndicator(Enum):
     """Indicates potential data loss from an operation."""
-    
+
     NONE = "none"
     PROBABLE = "probable"
     YES = "yes"
@@ -24,7 +24,7 @@ class DataLossIndicator(Enum):
 
 class ConstraintType(Enum):
     """Types of constraints supported."""
-    
+
     PRIMARY_KEY = "primary_key"
     FOREIGN_KEY = "foreign_key"
     CHECK = "check"
@@ -35,52 +35,52 @@ class ConstraintType(Enum):
 @dataclass
 class Column:
     """Represents a table column."""
-    
+
     name: str
     type: str  # JSON Schema type
     nullable: bool = True
-    default: Optional[Any] = None
-    description: Optional[str] = None
+    default: Any | None = None
+    description: str | None = None
 
 
 @dataclass
 class Constraint:
     """Represents a table constraint."""
-    
+
     name: str
     type: ConstraintType
-    columns: List[str]
-    definition: Optional[str] = None  # For CHECK constraints
-    referenced_table: Optional[str] = None  # For FOREIGN KEY
-    referenced_columns: Optional[List[str]] = None  # For FOREIGN KEY
+    columns: list[str]
+    definition: str | None = None  # For CHECK constraints
+    referenced_table: str | None = None  # For FOREIGN KEY
+    referenced_columns: list[str] | None = None  # For FOREIGN KEY
 
 
 @dataclass
 class Table:
     """Represents a database table."""
-    
+
     name: str
-    columns: List[Column]
-    constraints: List[Constraint] = field(default_factory=list)
-    description: Optional[str] = None
+    columns: list[Column]
+    constraints: list[Constraint] = field(default_factory=list)
+    description: str | None = None
 
 
 @dataclass
 class Schema:
     """Represents the database schema."""
-    
-    tables: Dict[str, Table] = field(default_factory=dict)
-    views: Dict[str, str] = field(default_factory=dict)  # name -> python code
+
+    tables: dict[str, Table] = field(default_factory=dict)
+    views: dict[str, str] = field(default_factory=dict)  # name -> python code
     version: str = "1.0.0"
-    semantic_documentation: Dict[str, str] = field(default_factory=dict)
+    semantic_documentation: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class QueryContext:
     """Context passed to query execution."""
-    
-    schema: Optional[Schema] = None
-    recent_errors: List[str] = field(default_factory=list)
+
+    schema: Schema | None = None
+    recent_errors: list[str] = field(default_factory=list)
     retry_count: int = 0
     max_retries: int = 3
 
@@ -88,26 +88,26 @@ class QueryContext:
 @dataclass
 class QueryResult:
     """Result of a query execution."""
-    
+
     status: bool
-    data: Optional[List[Dict[str, Any]]] = None
-    schema: Optional[Dict[str, Any]] = None  # JSON Schema of result
+    data: list[dict[str, Any]] | None = None
+    schema: dict[str, Any] | None = None  # JSON Schema of result
     data_loss_indicator: DataLossIndicator = DataLossIndicator.NONE
-    ai_comment: Optional[str] = None
-    compiled_plan: Optional[str] = None
-    transaction_id: Optional[str] = None
-    error: Optional[str] = None
-    execution_time: Optional[float] = None
+    ai_comment: str | None = None
+    compiled_plan: str | None = None
+    transaction_id: str | None = None
+    error: str | None = None
+    execution_time: float | None = None
 
 
 @dataclass
 class AIOperation:
     """Represents an operation determined by AI."""
-    
+
     operation_type: str  # select, insert, update, delete, create_table, etc.
     permission_level: PermissionLevel
-    affected_tables: List[str]
+    affected_tables: list[str]
     requires_python_generation: bool = False
-    python_code: Optional[str] = None
-    file_updates: Dict[str, str] = field(default_factory=dict)  # path -> content
+    python_code: str | None = None
+    file_updates: dict[str, str] = field(default_factory=dict)  # path -> content
     validation_required: bool = True
