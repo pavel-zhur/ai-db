@@ -10,7 +10,9 @@ services:
     command: echo "Base image built"
 
   ai-hub:
-    build: ./ai-hub
+    build:
+      context: .
+      dockerfile: ai-hub/Dockerfile
     depends_on:
       - base
     ports:
@@ -21,7 +23,9 @@ services:
       - git-repos:/data/repos
 
   console:
-    build: ./console
+    build:
+      context: .
+      dockerfile: console/Dockerfile
     depends_on:
       - base
     stdin_open: true
@@ -30,7 +34,9 @@ services:
       - git-repos:/data/repos
 
   mcp-ai-db:
-    build: ./mcp
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
     depends_on:
       - base
     command: ["ai-db-mcp"]
@@ -38,7 +44,9 @@ services:
       - git-repos:/data/repos
 
   mcp-ai-frontend:
-    build: ./mcp
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
     depends_on:
       - base
     command: ["ai-frontend-mcp"]

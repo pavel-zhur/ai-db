@@ -130,7 +130,10 @@ poetry run uvicorn ai_hub.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Docker Deployment
 ```bash
-# Build from workspace root
+# Build base image first
+docker build -f docker/base/Dockerfile -t ai-db-system:base .
+
+# Build AI-Hub from workspace root
 docker build -f ai-hub/Dockerfile -t ai-hub .
 
 # Run container

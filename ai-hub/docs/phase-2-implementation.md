@@ -182,7 +182,10 @@ For long-running operations (>30 seconds by default):
 
 ### Docker
 ```bash
-# Build from workspace root
+# Build base image first
+docker build -f docker/base/Dockerfile -t ai-db-system:base .
+
+# Build from workspace root (required for local dependencies)
 docker build -f ai-hub/Dockerfile -t ai-hub .
 
 # Run with environment variables
@@ -192,6 +195,8 @@ docker run -p 8000:8000 \
   -v /path/to/repos:/data/repos \
   ai-hub
 ```
+
+**Note**: AI-Hub uses the standardized base image but requires workspace root context for building due to local package dependencies (ai-db, git-layer, ai-shared). See `docs/dockerfile-standardization.md` for details.
 
 ### Local Development
 ```bash
@@ -360,6 +365,17 @@ AI-Hub automatically translates its configuration to AI-DB format:
 - `AI_HUB_AI_DB_TIMEOUT_SECONDS` → `AI_DB_TIMEOUT_SECONDS`
 - `AI_HUB_AI_DB_MAX_RETRIES` → `AI_DB_MAX_RETRIES`
 
+### Dockerfile Standardization
+
+AI-Hub uses the standardized `ai-db-system:base` image and follows the recommended pattern for components with local dependencies:
+- ✅ Uses `FROM ai-db-system:base` for consistency
+- ✅ Builds from workspace root context to access local dependencies
+- ✅ Explicitly copies required dependencies (ai-shared, ai-db, git-layer)
+- ✅ Uses `poetry install --no-dev` for production builds
+- ✅ Includes health checks and port exposure for HTTP service
+
+This pattern should be adopted by other components (console, mcp) that have similar dependency requirements. See `docs/dockerfile-standardization.md` for the full standardization guide.
+
 ## Conclusion
 
-The AI-Hub Phase 2 implementation provides a solid foundation for frontend-backend communication in the AI-DB ecosystem. The service is production-ready with comprehensive error handling, proper transaction management, full AI-DB Phase 2 compliance, and extensive documentation for future maintenance and enhancement.
+The AI-Hub Phase 2 implementation provides a solid foundation for frontend-backend communication in the AI-DB ecosystem. The service is production-ready with comprehensive error handling, proper transaction management, full AI-DB Phase 2 compliance, standardized Docker builds, and extensive documentation for future maintenance and enhancement.
