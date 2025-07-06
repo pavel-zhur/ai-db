@@ -10,7 +10,7 @@ This document outlines Python-specific coding standards for this project.
 - Trust the type system - avoid excessive defensive programming or unnecessary null checks. Let errors propagate naturally where appropriate.
 
 ## Design Patterns
-- Follow dependency injection using dependency_injector
+- Follow best practices for production-ready python libraries and utilities design
 - Use dataclasses for data containers with proper field typing
 - Try to avoid optional parameters, default values, fallback logic
 - Use explicit exception handling with proper types
