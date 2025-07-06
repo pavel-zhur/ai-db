@@ -113,6 +113,8 @@ target-version = ["py313"] ✅
 [tool.ruff] ✅
 line-length = 100 ✅
 target-version = "py313" ✅
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]  # Essential rules only ✅
 
 [tool.mypy] ✅
