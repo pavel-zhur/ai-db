@@ -339,7 +339,7 @@ class ConsoleInterface:
                 # Extract schema data and ensure it's a dict
                 schema_data = schema_result.data
                 if isinstance(schema_data, dict):
-                    schema_dict = schema_data
+                    schema_dict = schema_data  # type: ignore[unreachable]
                 else:
                     # Convert to dict format if needed (schema_data can be None or any other type)
                     schema_dict = {"schema": schema_data} if schema_data is not None else {}

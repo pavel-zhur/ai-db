@@ -88,7 +88,7 @@ class TestConsoleInterface:
 
         assert console_interface._session_state.transaction_active is False
         assert console_interface._session_state.transaction_id is None
-        assert console_interface._git_transaction is None
+        assert console_interface._git_transaction is None  # type: ignore[unreachable]
         assert console_interface._ai_db is None
         assert console_interface._ai_frontend is None
 
@@ -111,7 +111,7 @@ class TestConsoleInterface:
 
         assert console_interface._session_state.transaction_active is False
         assert console_interface._session_state.transaction_id is None
-        assert console_interface._git_transaction is None
+        assert console_interface._git_transaction is None  # type: ignore[unreachable]
         assert console_interface._ai_db is None
         assert console_interface._ai_frontend is None
 
@@ -201,10 +201,10 @@ class TestConsoleInterface:
 
         # Test YAML format
         console_interface._set_output_format("yaml")
-        assert console_interface._session_state.current_output_format == OutputFormat.YAML
+        assert console_interface._session_state.current_output_format == OutputFormat.YAML  # type: ignore[comparison-overlap]
 
         # Test table format
-        console_interface._set_output_format("table")
+        console_interface._set_output_format("table")  # type: ignore[unreachable]
         assert console_interface._session_state.current_output_format == OutputFormat.TABLE
 
         # Test invalid format should not change
