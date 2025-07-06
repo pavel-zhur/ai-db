@@ -25,7 +25,7 @@ class DataValidator:
             raise ValidationError(
                 f"Row validation failed for table {table.name}: {e.message}",
                 details=[str(e)]
-            )
+            ) from e
 
     def validate_rows(self, rows: list[dict[str, Any]], table: Table) -> list[str]:
         """Validate multiple rows and return all errors."""

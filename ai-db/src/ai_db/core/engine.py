@@ -15,7 +15,8 @@ from ai_db.core.models import (
     QueryResult,
 )
 from ai_db.core.query_compiler import QueryCompiler
-from ai_db.exceptions import PermissionError, ValidationError
+from ai_db.exceptions import PermissionError as DBPermissionError
+from ai_db.exceptions import ValidationError
 from ai_db.storage import SchemaStore, ViewStore, YAMLStore
 from ai_db.transaction import TransactionManager
 from ai_db.validation import ConstraintChecker, DataValidator, SafeExecutor
@@ -145,11 +146,13 @@ class Engine:
             # Add common metadata
             result.transaction_id = transaction_context.id
             result.execution_time = time.time() - start_time
-            result.ai_comment = execution_plan.interpretation if hasattr(execution_plan, 'interpretation') else None
+            result.ai_comment = (
+                execution_plan.interpretation if hasattr(execution_plan, 'interpretation') else None
+            )
 
             return result
 
-        except PermissionError as e:
+        except DBPermissionError as e:
             return QueryResult(
                 status=False,
                 error=str(e),
@@ -341,7 +344,7 @@ class Engine:
     ) -> QueryResult:
         """Execute view operation."""
         # Apply file updates
-        for path, content in operation.file_updates.items():
+        for path, _ in operation.file_updates.items():
             if path.endswith(".py") and operation.python_code:
                 # Compile the view code to validate it
                 compiled_plan = self._query_compiler.compile_query(operation.python_code)

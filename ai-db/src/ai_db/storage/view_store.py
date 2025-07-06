@@ -44,7 +44,7 @@ class ViewStore:
             return python_code, metadata
 
         except StorageError as e:
-            raise StorageError(f"Failed to load view {view_name}: {e}")
+            raise StorageError(f"Failed to load view {view_name}: {e}") from e
 
     async def delete_view(self, view_name: str) -> None:
         """Delete a view."""

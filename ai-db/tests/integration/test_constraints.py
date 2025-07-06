@@ -108,7 +108,8 @@ class TestConstraintIntegration:
         assert len(errors) == 0
 
         # Test with invalid foreign key
-        invalid_orders = valid_orders + [
+        invalid_orders = [
+            *valid_orders,
             {"id": 3, "user_id": 99, "amount": 300}  # Invalid user_id
         ]
 
@@ -158,7 +159,9 @@ class TestConstraintIntegration:
                     name="chk_discount",
                     type=ConstraintType.CHECK,
                     columns=["price", "discount_price"],
-                    definition="discount_price is None or (discount_price > 0 and discount_price < price)"
+                    definition=(
+                        "discount_price is None or (discount_price > 0 and discount_price < price)"
+                    )
                 ),
                 Constraint(
                     name="chk_stock",
@@ -176,9 +179,12 @@ class TestConstraintIntegration:
             {"id": 2, "name": "Product B", "price": 50, "discount_price": None, "stock": 0},
 
             # Invalid products
-            {"id": 3, "name": "Product C", "price": -10, "discount_price": None, "stock": 5},  # Negative price
-            {"id": 4, "name": "Product D", "price": 100, "discount_price": 120, "stock": 5},  # Discount > price
-            {"id": 5, "name": "Product E", "price": 100, "discount_price": 80, "stock": -5},  # Negative stock
+            # Negative price
+            {"id": 3, "name": "Product C", "price": -10, "discount_price": None, "stock": 5},
+            # Discount > price
+            {"id": 4, "name": "Product D", "price": 100, "discount_price": 120, "stock": 5},
+            # Negative stock
+            {"id": 5, "name": "Product E", "price": 100, "discount_price": 80, "stock": -5},
         ]
 
         safe_executor = SafeExecutor()

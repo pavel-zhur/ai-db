@@ -48,7 +48,7 @@ class TransactionManager:
             return str(self._context.path)
 
         except Exception as e:
-            raise TransactionError(f"Failed to escalate transaction: {e!s}")
+            raise TransactionError(f"Failed to escalate transaction: {e!s}") from e
 
     def get_metadata(self) -> dict[str, Any]:
         """Get transaction metadata."""

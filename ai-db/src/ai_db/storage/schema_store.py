@@ -36,7 +36,9 @@ class SchemaStore:
 
             # Load semantic documentation
             try:
-                doc_content = await self._yaml_store.read_file("documentation/semantic_meanings.yaml")
+                doc_content = await self._yaml_store.read_file(
+                    "documentation/semantic_meanings.yaml"
+                )
                 schema.semantic_documentation = yaml.safe_load(doc_content) or {}
             except StorageError:
                 logger.info("No semantic documentation found")
@@ -47,7 +49,7 @@ class SchemaStore:
             return schema
 
         except Exception as e:
-            raise SchemaError(f"Failed to load schema: {e}")
+            raise SchemaError(f"Failed to load schema: {e}") from e
 
     async def save_table_schema(self, table: Table) -> None:
         """Save a table schema."""

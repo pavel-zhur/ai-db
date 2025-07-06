@@ -16,7 +16,8 @@ from ai_db.core.models import (
     QueryContext,
     Schema,
 )
-from ai_db.exceptions import AIError, PermissionError
+from ai_db.exceptions import AIError
+from ai_db.exceptions import PermissionError as DBPermissionError
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,17 @@ logger = logging.getLogger(__name__)
 class OperationPlan(BaseModel):
     """Plan for executing a database operation."""
 
-    operation_type: str = Field(description="Type of operation: select, insert, update, delete, create_table, alter_table, drop_table, create_view, drop_view")
-    permission_level: str = Field(description="Required permission level: select, data_modify, schema_modify, view_modify")
+    operation_type: str = Field(
+        description="Type of operation: select, insert, update, delete, create_table, "
+        "alter_table, drop_table, create_view, drop_view"
+    )
+    permission_level: str = Field(
+        description="Required permission level: select, data_modify, schema_modify, view_modify"
+    )
     affected_tables: list[str] = Field(description="List of tables affected by this operation")
-    requires_python_generation: bool = Field(description="Whether this operation requires Python code generation")
+    requires_python_generation: bool = Field(
+        description="Whether this operation requires Python code generation"
+    )
     data_loss_indicator: str = Field(description="Potential data loss: none, probable, yes")
     confidence: float = Field(description="Confidence in the interpretation (0-1)")
     interpretation: str = Field(description="Natural language interpretation of the query")
@@ -86,7 +94,9 @@ class AIAgent:
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Query: {query}\nGranted permissions: {permissions.value}{error_context}")
+            HumanMessage(
+                content=f"Query: {query}\nGranted permissions: {permissions.value}{error_context}"
+            )
         ]
 
         try:
@@ -97,7 +107,7 @@ class AIAgent:
             # Check permissions
             required_perm = PermissionLevel(plan.permission_level)
             if not self._check_permission(permissions, required_perm):
-                raise PermissionError(required_perm.value, permissions.value)
+                raise DBPermissionError(required_perm.value, permissions.value)
 
             # Create AI operation
             operation = AIOperation(
@@ -113,11 +123,11 @@ class AIAgent:
 
             return operation
 
-        except PermissionError:
+        except DBPermissionError:
             raise
         except Exception as e:
             logger.error(f"Failed to analyze query: {e}")
-            raise AIError(f"Failed to analyze query: {e!s}", context.retry_count)
+            raise AIError(f"Failed to analyze query: {e!s}", context.retry_count) from e
 
     async def generate_execution_plan(
         self,
@@ -153,7 +163,7 @@ class AIAgent:
 
         except Exception as e:
             logger.error(f"Failed to generate execution plan: {e}")
-            raise AIError(f"Failed to generate execution plan: {e!s}", context.retry_count)
+            raise AIError(f"Failed to generate execution plan: {e!s}", context.retry_count) from e
 
     async def handle_validation_error(
         self,
@@ -166,16 +176,16 @@ class AIAgent:
         if context.retry_count >= self._max_retries:
             return None
 
-        system_prompt = """You are an AI database engine. A validation error occurred during execution.
-Analyze the error and generate a fixed execution plan if possible.
-
-Current schema and documentation:
-{schema_context}
-
-Previous operation:
-{operation_details}
-
-Respond with a new ExecutionPlan that fixes the validation error, or set error field if unfixable."""
+        system_prompt = (
+            "You are an AI database engine. A validation error occurred during execution.\n"
+            "Analyze the error and generate a fixed execution plan if possible.\n\n"
+            "Current schema and documentation:\n"
+            "{schema_context}\n\n"
+            "Previous operation:\n"
+            "{operation_details}\n\n"
+            "Respond with a new ExecutionPlan that fixes the validation error, "
+            "or set error field if unfixable."
+        )
 
         messages = [
             SystemMessage(content=system_prompt.format(
@@ -211,17 +221,18 @@ Respond with a new ExecutionPlan that fixes the validation error, or set error f
         """Build the system prompt for query analysis."""
         schema_context = self._format_schema_context(schema) if schema else "No schema loaded yet."
 
-        return f"""You are an AI database engine. Analyze the given query and determine:
-1. The type of operation (select, insert, update, delete, create_table, alter_table, drop_table, create_view, drop_view)
-2. Required permission level
-3. Affected tables
-4. Whether Python code generation is needed (for SELECT queries and views)
-5. Potential data loss
-
-Current database schema and documentation:
-{schema_context}
-
-Respond in JSON format matching the OperationPlan schema."""
+        return (
+            f"You are an AI database engine. Analyze the given query and determine:\n"
+            f"1. The type of operation (select, insert, update, delete, create_table, "
+            f"alter_table, drop_table, create_view, drop_view)\n"
+            f"2. Required permission level\n"
+            f"3. Affected tables\n"
+            f"4. Whether Python code generation is needed (for SELECT queries and views)\n"
+            f"5. Potential data loss\n\n"
+            f"Current database schema and documentation:\n"
+            f"{schema_context}\n\n"
+            f"Respond in JSON format matching the OperationPlan schema."
+        )
 
     def _build_execution_prompt(self, operation: AIOperation, schema: Schema | None) -> str:
         """Build the system prompt for execution planning."""
@@ -283,11 +294,17 @@ Respond in JSON format with ExecutionPlan including file_updates list."""
             if table.constraints:
                 lines.append("  Constraints:")
                 for const in table.constraints:
-                    const_def = f"    - {const.name}: {const.type.value} on ({', '.join(const.columns)})"
+                    const_def = (
+                        f"    - {const.name}: {const.type.value} on "
+                        f"({', '.join(const.columns)})"
+                    )
                     if const.definition:
                         const_def += f" CHECK {const.definition}"
                     if const.referenced_table:
-                        const_def += f" REFERENCES {const.referenced_table}({', '.join(const.referenced_columns or [])})"
+                        const_def += (
+                            f" REFERENCES {const.referenced_table}"
+                            f"({', '.join(const.referenced_columns or [])})"
+                        )
                     lines.append(const_def)
 
         if schema.views:

@@ -70,7 +70,7 @@ class SafeExecutor:
 
         except Exception as e:
             logger.error(f"Failed to evaluate expression: {e}")
-            raise ValidationError(f"Expression evaluation failed: {e!s}")
+            raise ValidationError(f"Expression evaluation failed: {e!s}") from e
 
     def _create_safe_globals(self) -> dict[str, Any]:
         """Create safe global environment."""

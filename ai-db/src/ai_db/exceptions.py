@@ -12,7 +12,9 @@ class PermissionError(AIDBError):
     """Raised when operation exceeds granted permissions."""
 
     def __init__(self, required: str, granted: str) -> None:
-        super().__init__(f"Operation requires {required} permission, but only {granted} was granted")
+        super().__init__(
+            f"Operation requires {required} permission, but only {granted} was granted"
+        )
         self.required = required
         self.granted = granted
 

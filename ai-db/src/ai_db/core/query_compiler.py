@@ -49,7 +49,7 @@ class QueryCompiler:
 
         except Exception as e:
             logger.error(f"Failed to compile query: {e}")
-            raise CompilationError(f"Failed to compile query: {e!s}")
+            raise CompilationError(f"Failed to compile query: {e!s}") from e
 
     def execute_compiled(
         self,
@@ -91,7 +91,7 @@ class QueryCompiler:
 
         except Exception as e:
             logger.error(f"Failed to execute compiled query: {e}")
-            raise CompilationError(f"Failed to execute query: {e!s}")
+            raise CompilationError(f"Failed to execute query: {e!s}") from e
 
 
     def _validate_code(self, python_code: str) -> None:
@@ -119,7 +119,7 @@ class QueryCompiler:
                 raise CompilationError("Query code must define at least one function")
 
         except SyntaxError as e:
-            raise CompilationError(f"Syntax error: {e}")
+            raise CompilationError(f"Syntax error: {e}") from e
 
     def _create_safe_globals(self) -> dict[str, Any]:
         """Create safe global environment for query execution."""

@@ -37,13 +37,15 @@ class YAMLStore:
                     return []
 
                 if not isinstance(data, list):
-                    raise StorageError(f"Invalid table format for {table_name}: expected list, got {type(data)}")
+                    raise StorageError(
+                        f"Invalid table format for {table_name}: expected list, got {type(data)}"
+                    )
 
                 return data
         except yaml.YAMLError as e:
-            raise StorageError(f"Failed to parse YAML for table {table_name}: {e}")
+            raise StorageError(f"Failed to parse YAML for table {table_name}: {e}") from e
         except Exception as e:
-            raise StorageError(f"Failed to read table {table_name}: {e}")
+            raise StorageError(f"Failed to read table {table_name}: {e}") from e
 
     async def write_table(self, table_name: str, data: list[dict[str, Any]]) -> None:
         """Write table data to YAML file."""
@@ -54,14 +56,20 @@ class YAMLStore:
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            yaml_content = yaml.dump(data, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            yaml_content = yaml.dump(
+                data, default_flow_style=False, sort_keys=False, allow_unicode=True
+            )
             async with aiofiles.open(file_path, 'w') as f:
                 await f.write(yaml_content)
             logger.info(f"Successfully wrote {len(data)} records to table {table_name}")
-            await self._transaction_context.operation_complete(f"Wrote {len(data)} records to table {table_name}")
+            await self._transaction_context.operation_complete(
+                f"Wrote {len(data)} records to table {table_name}"
+            )
         except Exception as e:
-            await self._transaction_context.operation_failed(f"Failed to write table {table_name}: {e}")
-            raise StorageError(f"Failed to write table {table_name}: {e}")
+            await self._transaction_context.operation_failed(
+                f"Failed to write table {table_name}: {e}"
+            )
+            raise StorageError(f"Failed to write table {table_name}: {e}") from e
 
     async def delete_table(self, table_name: str) -> None:
         """Delete a table's YAML file."""
@@ -76,8 +84,10 @@ class YAMLStore:
                 logger.info(f"Deleted table {table_name}")
                 await self._transaction_context.operation_complete(f"Deleted table {table_name}")
             except Exception as e:
-                await self._transaction_context.operation_failed(f"Failed to delete table {table_name}: {e}")
-                raise StorageError(f"Failed to delete table {table_name}: {e}")
+                await self._transaction_context.operation_failed(
+                    f"Failed to delete table {table_name}: {e}"
+                )
+                raise StorageError(f"Failed to delete table {table_name}: {e}") from e
 
     async def list_tables(self) -> list[str]:
         """List all table names."""
@@ -103,7 +113,7 @@ class YAMLStore:
             async with aiofiles.open(file_path) as f:
                 return await f.read()
         except Exception as e:
-            raise StorageError(f"Failed to read file {relative_path}: {e}")
+            raise StorageError(f"Failed to read file {relative_path}: {e}") from e
 
     async def write_file(self, relative_path: str, content: str) -> None:
         """Write any file content."""
@@ -119,8 +129,10 @@ class YAMLStore:
             logger.info(f"Successfully wrote file {relative_path}")
             await self._transaction_context.operation_complete(f"Wrote file {relative_path}")
         except Exception as e:
-            await self._transaction_context.operation_failed(f"Failed to write file {relative_path}: {e}")
-            raise StorageError(f"Failed to write file {relative_path}: {e}")
+            await self._transaction_context.operation_failed(
+                f"Failed to write file {relative_path}: {e}"
+            )
+            raise StorageError(f"Failed to write file {relative_path}: {e}") from e
 
     def _get_table_path(self, table_name: str) -> Path:
         """Get the file path for a table."""

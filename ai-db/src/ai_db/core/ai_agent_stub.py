@@ -8,7 +8,7 @@ from ai_db.core.models import (
     PermissionLevel,
     QueryContext,
 )
-from ai_db.exceptions import PermissionError
+from ai_db.exceptions import PermissionError as DBPermissionError
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class AIAgentStub:
     def _create_table_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Create table operation."""
         if not self._check_permission(permissions, PermissionLevel.SCHEMA_MODIFY):
-            raise PermissionError("schema_modify", permissions.value)
+            raise DBPermissionError("schema_modify", permissions.value)
 
         # Extract table name from query (simple parsing)
         table_name = "users"  # Default for testing
@@ -103,7 +103,7 @@ class AIAgentStub:
     def _select_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Select operation."""
         if not self._check_permission(permissions, PermissionLevel.SELECT):
-            raise PermissionError("select", permissions.value)
+            raise DBPermissionError("select", permissions.value)
 
         return AIOperation(
             operation_type="select",
@@ -116,7 +116,7 @@ class AIAgentStub:
     def _insert_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Insert operation."""
         if not self._check_permission(permissions, PermissionLevel.DATA_MODIFY):
-            raise PermissionError("data_modify", permissions.value)
+            raise DBPermissionError("data_modify", permissions.value)
 
         return AIOperation(
             operation_type="insert",
@@ -129,7 +129,7 @@ class AIAgentStub:
     def _update_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Update operation."""
         if not self._check_permission(permissions, PermissionLevel.DATA_MODIFY):
-            raise PermissionError("data_modify", permissions.value)
+            raise DBPermissionError("data_modify", permissions.value)
 
         return AIOperation(
             operation_type="update",
@@ -142,7 +142,7 @@ class AIAgentStub:
     def _delete_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Delete operation."""
         if not self._check_permission(permissions, PermissionLevel.DATA_MODIFY):
-            raise PermissionError("data_modify", permissions.value)
+            raise DBPermissionError("data_modify", permissions.value)
 
         return AIOperation(
             operation_type="delete",
@@ -155,7 +155,7 @@ class AIAgentStub:
     def _create_view_operation(self, query: str, permissions: PermissionLevel) -> AIOperation:
         """Create view operation."""
         if not self._check_permission(permissions, PermissionLevel.VIEW_MODIFY):
-            raise PermissionError("view_modify", permissions.value)
+            raise DBPermissionError("view_modify", permissions.value)
 
         return AIOperation(
             operation_type="create_view",

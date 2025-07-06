@@ -19,7 +19,9 @@ class TestYAMLStore:
         assert data == []
 
     @pytest.mark.asyncio
-    async def test_write_and_read_table(self, transaction_context: TransactionProtocol, sample_data):
+    async def test_write_and_read_table(
+        self, transaction_context: TransactionProtocol, sample_data
+    ):
         """Test writing and reading table data."""
         store = YAMLStore(transaction_context)
 

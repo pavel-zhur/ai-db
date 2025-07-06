@@ -68,7 +68,8 @@ class ConstraintChecker:
             key_tuple = tuple(key_values)
             if key_tuple in seen_keys:
                 errors.append(
-                    f"Row {i}: Duplicate primary key {dict(zip(constraint.columns, key_values, strict=False))}"
+                    f"Row {i}: Duplicate primary key "
+                    f"{dict(zip(constraint.columns, key_values, strict=False))}"
                 )
             else:
                 seen_keys.add(key_tuple)
@@ -99,7 +100,8 @@ class ConstraintChecker:
             value_tuple = tuple(values)
             if value_tuple in seen_values:
                 errors.append(
-                    f"Row {i}: Duplicate unique constraint {dict(zip(constraint.columns, values, strict=False))}"
+                    f"Row {i}: Duplicate unique constraint "
+                    f"{dict(zip(constraint.columns, values, strict=False))}"
                 )
             else:
                 seen_values.add(value_tuple)
@@ -136,7 +138,8 @@ class ConstraintChecker:
                 fk_values = [row.get(col) for col in constraint.columns]
                 if any(v is not None for v in fk_values):
                     errors.append(
-                        f"Row {i}: Foreign key references non-existent table {constraint.referenced_table}"
+                        f"Row {i}: Foreign key references non-existent table "
+                        f"{constraint.referenced_table}"
                     )
             return
 
@@ -165,7 +168,8 @@ class ConstraintChecker:
             fk_tuple = tuple(fk_values)
             if fk_tuple not in ref_index:
                 errors.append(
-                    f"Row {i}: Foreign key violation - {dict(zip(constraint.columns, fk_values, strict=False))} "
+                    f"Row {i}: Foreign key violation - "
+                    f"{dict(zip(constraint.columns, fk_values, strict=False))} "
                     f"not found in {constraint.referenced_table}"
                 )
 
