@@ -289,8 +289,8 @@ POST /db/data          # Data modifications (INSERT/UPDATE/DELETE)
 ## Component Communication
 
 ### Interface Standards
-- git-layer defines TransactionContext interface
-- All components depend on git-layer
+- ai-shared defines TransactionProtocol interface
+- All components depend on ai-shared for interfaces
 - No adapters needed - standardize at source
 - Use enums for permission levels everywhere
 - MCP servers must provide all DB/frontend info including schemas and semantic descriptions
@@ -370,6 +370,10 @@ POST /db/data          # Data modifications (INSERT/UPDATE/DELETE)
 - Follow Python industry standards for monorepo structure
 - Proper dependency management between libraries and applications
 - Components reference each other through well-defined interfaces
+- Shared interfaces in `ai-shared` package to avoid direct dependencies
+- No dependencies of ai-db and ai-frontend on git-layer (independence)
+- Python 3.13 (latest stable)
+- Prefer latest versions of all libraries
 
 ### Developer Experience
 - System must run easily on host machines, in containers, and in CI/CD

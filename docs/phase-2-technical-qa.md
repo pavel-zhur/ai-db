@@ -875,3 +875,11 @@ init of files of the db or of the frontend within an empty git repo: those init 
 
 Repository can be initialized with seed data from a folder path.
 for unit tests. there has to be such methods in git-layer... I think they need to be in ai-frontend and ai-dc. like... opening a transaction, supplying a folder to take seed data from (merely copy, but validate (compile / validate) before copying; validation involves no AI calls, just a standard pre-commit validation that ai-frontned and ai-db do)
+
+### Q46:
+
+(added by the user)
+
+recent decision, ai-frontend and ai-db dont depend on git-layer.
+ai-shared defines the transaction protocol instead.
+its important to keep ai-db and ai-frontend physically separate.
