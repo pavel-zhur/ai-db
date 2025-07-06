@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 async def read_file(path: Path) -> str:
     """Read file content asynchronously."""
     async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
-        return await f.read()
+        content: str = await f.read()
+        return content
 
 
 async def write_file(path: Path, content: str) -> None:
@@ -29,7 +30,8 @@ async def write_file(path: Path, content: str) -> None:
 async def read_json(path: Path) -> Dict[str, Any]:
     """Read JSON file asynchronously."""
     content = await read_file(path)
-    return json.loads(content)
+    result: Dict[str, Any] = json.loads(content)
+    return result
 
 
 async def write_json(path: Path, data: Dict[str, Any]) -> None:
@@ -41,7 +43,8 @@ async def write_json(path: Path, data: Dict[str, Any]) -> None:
 async def read_yaml(path: Path) -> Dict[str, Any]:
     """Read YAML file asynchronously."""
     content = await read_file(path)
-    return yaml.safe_load(content)
+    result: Dict[str, Any] = yaml.safe_load(content)
+    return result
 
 
 async def write_yaml(path: Path, data: Dict[str, Any]) -> None:
@@ -52,9 +55,10 @@ async def write_yaml(path: Path, data: Dict[str, Any]) -> None:
 
 def sanitize_component_name(name: str) -> str:
     """Convert a string to a valid React component name."""
-    # Remove special characters and convert to PascalCase
-    words = re.findall(r"\w+", name)
-    return "".join(word.capitalize() for word in words)
+    # Split on non-alphanumeric characters and convert to PascalCase
+    words = re.split(r"[^a-zA-Z0-9]+", name)
+    # Filter out empty strings and capitalize each word
+    return "".join(word.capitalize() for word in words if word)
 
 
 def to_camel_case(snake_str: str) -> str:
@@ -77,7 +81,7 @@ async def run_command(
 ) -> tuple[int, str, str]:
     """Run a command asynchronously and return exit code, stdout, and stderr."""
     logger.debug(f"Running command: {' '.join(cmd)}")
-    
+
     process = await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE,
@@ -85,16 +89,14 @@ async def run_command(
         cwd=cwd,
         env=env,
     )
-    
+
     try:
-        stdout, stderr = await asyncio.wait_for(
-            process.communicate(), timeout=timeout
-        )
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
     except asyncio.TimeoutError:
         process.kill()
         await process.communicate()
         raise TimeoutError(f"Command timed out after {timeout} seconds")
-    
+
     return (
         process.returncode or 0,
         stdout.decode("utf-8", errors="replace"),
@@ -104,7 +106,12 @@ async def run_command(
 
 def extract_code_blocks(text: str, language: Optional[str] = None) -> list[str]:
     """Extract code blocks from markdown text."""
-    pattern = r"```(?:" + (language or r"\w*") + r")?\n(.*?)\n```"
+    if language:
+        # Match specific language blocks
+        pattern = rf"```{re.escape(language)}\n(.*?)\n```"
+    else:
+        # Match all code blocks
+        pattern = r"```(?:\w*)?\n(.*?)\n```"
     matches = re.findall(pattern, text, re.DOTALL)
     return matches
 

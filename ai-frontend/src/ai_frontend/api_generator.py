@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from ai_frontend.type_generator import TypeScriptGenerator
 from ai_frontend.utils import sanitize_component_name, to_camel_case, write_file
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 class ApiGenerator:
     """Generate API client code for AI-DB integration."""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         self._type_generator = TypeScriptGenerator()
-    
+
     async def generate_api_layer(
         self,
         project_dir: Path,
@@ -23,51 +23,43 @@ class ApiGenerator:
         api_base_url: str = "http://localhost:8000",
     ) -> None:
         """Generate complete API layer including types and service functions.
-        
+
         Args:
             project_dir: Root directory of the React project
             schema: AI-DB schema dictionary
             api_base_url: Base URL for API calls
         """
         logger.info("Generating API layer from schema")
-        
+
         # Generate TypeScript types
         types_content = self._type_generator.generate_from_schema(schema)
         await write_file(project_dir / "src/types/api.ts", types_content)
-        
+
         # Generate service functions for each table
         if "tables" in schema:
             for table_name, table_schema in schema["tables"].items():
-                service_content = self._generate_table_service(
-                    table_name, table_schema
-                )
-                service_file = (
-                    project_dir / f"src/api/services/{to_camel_case(table_name)}.ts"
-                )
+                service_content = self._generate_table_service(table_name, table_schema)
+                service_file = project_dir / f"src/api/services/{to_camel_case(table_name)}.ts"
                 await write_file(service_file, service_content)
-        
+
         # Generate service index
         index_content = self._generate_services_index(schema.get("tables", {}))
         await write_file(project_dir / "src/api/services/index.ts", index_content)
-        
+
         # Generate hooks for each table
         if "tables" in schema:
             for table_name in schema["tables"]:
                 hook_content = self._generate_table_hooks(table_name)
-                hook_file = (
-                    project_dir / f"src/hooks/use{sanitize_component_name(table_name)}.ts"
-                )
+                hook_file = project_dir / f"src/hooks/use{sanitize_component_name(table_name)}.ts"
                 await write_file(hook_file, hook_content)
-        
+
         logger.info("API layer generated successfully")
-    
-    def _generate_table_service(
-        self, table_name: str, table_schema: Dict[str, Any]
-    ) -> str:
+
+    def _generate_table_service(self, table_name: str, table_schema: Dict[str, Any]) -> str:
         """Generate service functions for a single table."""
         type_name = sanitize_component_name(table_name)
         service_name = to_camel_case(table_name)
-        
+
         # Determine primary key field
         pk_field = "id"  # default
         if "columns" in table_schema:
@@ -75,7 +67,7 @@ class ApiGenerator:
                 if col_schema.get("primary_key"):
                     pk_field = col_name
                     break
-        
+
         return f"""import {{ apiClient }} from '@/api/client'
 import {{ {type_name}, Create{type_name}DTO, Update{type_name}DTO, QueryResult }} from '@/types/api'
 
@@ -96,15 +88,14 @@ export const {service_name}Service = {{
 
   async create(data: Create{type_name}DTO): Promise<{type_name}> {{
     const columns = Object.keys(data).join(', ')
-    const values = Object.values(data).map(v => 
+    const values = Object.values(data).map(v =>
       typeof v === 'string' ? `'${{v}}'` : v
     ).join(', ')
-    
     await apiClient.execute(
       `INSERT INTO {table_name} (${{columns}}) VALUES (${{values}})`,
       'data_modify'
     )
-    
+
     // Fetch the created record (assuming auto-increment ID)
     const result = await apiClient.query<{type_name}>(
       `SELECT * FROM {table_name} ORDER BY {pk_field} DESC LIMIT 1`
@@ -119,12 +110,12 @@ export const {service_name}Service = {{
         return `${{key}} = ${{val}}`
       }})
       .join(', ')
-    
+
     await apiClient.execute(
       `UPDATE {table_name} SET ${{updates}} WHERE {pk_field} = '${{id}}'`,
       'data_modify'
     )
-    
+
     return this.getById(id) as Promise<{type_name}>
   }},
 
@@ -142,24 +133,23 @@ export const {service_name}Service = {{
     )
   }},
 }}"""
-    
+
     def _generate_services_index(self, tables: Dict[str, Any]) -> str:
         """Generate index file for all services."""
         imports = []
-        exports = []
-        
+
         for table_name in tables:
             service_name = to_camel_case(table_name)
             imports.append(f"export {{ {service_name}Service }} from './{service_name}'")
-        
+
         return "\n".join(imports)
-    
+
     def _generate_table_hooks(self, table_name: str) -> str:
         """Generate React hooks for a table."""
         type_name = sanitize_component_name(table_name)
         service_name = to_camel_case(table_name)
         hook_name = f"use{type_name}"
-        
+
         return f"""import {{ useState, useCallback }} from 'react'
 import {{ {service_name}Service }} from '@/api/services/{service_name}'
 import {{ {type_name}, Create{type_name}DTO, Update{type_name}DTO }} from '@/types/api'

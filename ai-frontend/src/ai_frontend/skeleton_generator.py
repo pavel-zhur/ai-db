@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional
 
 from ai_frontend.utils import write_file
 
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SkeletonGenerator:
     """Generate React project skeleton with Material-UI and Vite."""
-    
+
     async def generate(
         self,
         project_dir: Path,
@@ -19,14 +18,14 @@ class SkeletonGenerator:
         api_base_url: str = "http://localhost:8000",
     ) -> None:
         """Generate complete React project skeleton.
-        
+
         Args:
             project_dir: Directory to generate project in
             project_name: Name of the project
             api_base_url: Base URL for API calls
         """
         logger.info(f"Generating React skeleton in {project_dir}")
-        
+
         # Create directory structure
         directories = [
             "src",
@@ -40,10 +39,10 @@ class SkeletonGenerator:
             "src/theme",
             "public",
         ]
-        
+
         for dir_path in directories:
             (project_dir / dir_path).mkdir(parents=True, exist_ok=True)
-        
+
         # Generate files
         files = {
             "package.json": self._generate_package_json(project_name),
@@ -64,12 +63,12 @@ class SkeletonGenerator:
             ".env.example": self._generate_env_example(api_base_url),
             ".eslintrc.json": self._generate_eslint_config(),
         }
-        
+
         for file_path, content in files.items():
             await write_file(project_dir / file_path, content)
-        
+
         logger.info("React skeleton generated successfully")
-    
+
     def _generate_package_json(self, project_name: str) -> str:
         """Generate package.json file."""
         return f"""{
@@ -107,7 +106,7 @@ class SkeletonGenerator:
     "vite": "^5.0.0"
   }
 }"""
-    
+
     def _generate_tsconfig(self) -> str:
         """Generate tsconfig.json file."""
         return """{
@@ -138,7 +137,7 @@ class SkeletonGenerator:
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }"""
-    
+
     def _generate_tsconfig_node(self) -> str:
         """Generate tsconfig.node.json file."""
         return """{
@@ -151,7 +150,7 @@ class SkeletonGenerator:
   },
   "include": ["vite.config.ts"]
 }"""
-    
+
     def _generate_vite_config(self) -> str:
         """Generate vite.config.ts file."""
         return """import { defineConfig } from 'vite'
@@ -179,9 +178,16 @@ export default defineConfig({
     sourcemap: true,
   },
 })"""
-    
+
     def _generate_gitignore(self) -> str:
         """Generate .gitignore file."""
+        # Load from template
+        template_path = Path(__file__).parent / "templates" / "gitignore"
+        if template_path.exists():
+            with open(template_path, "r") as f:
+                return f.read()
+
+        # Fallback if template not found
         return """# Dependencies
 node_modules/
 .pnp
@@ -207,7 +213,7 @@ build/
 
 # TypeScript
 *.tsbuildinfo"""
-    
+
     def _generate_index_html(self, project_name: str) -> str:
         """Generate index.html file."""
         return f"""<!doctype html>
@@ -217,14 +223,17 @@ build/
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{project_name}</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+    />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>"""
-    
+
     def _generate_main_tsx(self) -> str:
         """Generate main.tsx file."""
         return """import React from 'react'
@@ -242,7 +251,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </React.StrictMode>,
 )"""
-    
+
     def _generate_app_tsx(self) -> str:
         """Generate App.tsx file."""
         return """import { Container, Typography, Box } from '@mui/material'
@@ -263,7 +272,7 @@ function App() {
 }
 
 export default App"""
-    
+
     def _generate_theme(self) -> str:
         """Generate theme.ts file."""
         return """import { createTheme } from '@mui/material/styles'
@@ -282,7 +291,7 @@ export const theme = createTheme({
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
   },
 })"""
-    
+
     def _generate_api_client(self, api_base_url: str) -> str:
         """Generate API client."""
         return f"""import axios, {{ AxiosInstance, AxiosError }} from 'axios'
@@ -318,7 +327,7 @@ class ApiClient {{
     if (!error.config || error.config.method?.toUpperCase() !== 'GET') {{
       return false
     }}
-    
+
     const status = error.response?.status
     return status === 502 || status === 503 || status === 504 || !status
   }}
@@ -326,15 +335,15 @@ class ApiClient {{
   private async retryRequest(error: AxiosError): Promise<any> {{
     const config = error.config!
     const retryCount = (config as any).__retryCount || 0
-    
+
     if (retryCount >= this.retryAttempts) {{
       return Promise.reject(error)
     }}
 
     (config as any).__retryCount = retryCount + 1
-    
+
     await new Promise(resolve => setTimeout(resolve, this.retryDelay * (retryCount + 1)))
-    
+
     return this.client.request(config)
   }}
 
@@ -347,34 +356,48 @@ class ApiClient {{
   }}
 
   async query<T>(query: string): Promise<QueryResult<T>> {{
-    const response = await this.client.post<ApiResponse<QueryResult<T>>>('/api/query', {{
+    const response = await this.client.post<ApiResponse<QueryResult<T>>>('/db/query', {{
       query,
       permission: 'select',
     }})
-    
+
     if (!response.data.success) {{
       throw new Error(response.data.error || 'Query failed')
     }}
-    
+
     return response.data.data!
   }}
 
-  async execute(query: string, permission: 'data_modify' | 'schema_modify'): Promise<MutationResult> {{
-    const response = await this.client.post<ApiResponse<MutationResult>>('/api/execute', {{
-      query,
-      permission,
+  async queryView<T>(viewName: string, params?: Record<string, any>): Promise<QueryResult<T>> {{
+    const response = await this.client.post<ApiResponse<QueryResult<T>>>('/db/query/view', {{
+      view: viewName,
+      params,
+      permission: 'select',
     }})
-    
+
+    if (!response.data.success) {{
+      throw new Error(response.data.error || 'View query failed')
+    }}
+
+    return response.data.data!
+  }}
+
+  async execute(query: string): Promise<MutationResult> {{
+    const response = await this.client.post<ApiResponse<MutationResult>>('/db/data', {{
+      query,
+      permission: 'data_modify',
+    }})
+
     if (!response.data.success) {{
       throw new Error(response.data.error || 'Execution failed')
     }}
-    
+
     return response.data.data!
   }}
 }}
 
 export const apiClient = new ApiClient()"""
-    
+
     def _generate_use_api_hook(self) -> str:
         """Generate useApi hook."""
         return """import { useState, useEffect, useCallback } from 'react'
@@ -415,7 +438,7 @@ export function useApi<T>(
 
   return { ...state, refetch: fetchData }
 }"""
-    
+
     def _generate_utils(self) -> str:
         """Generate utils/index.ts file."""
         return """export function formatDate(date: string | Date): string {
@@ -441,7 +464,7 @@ export function debounce<T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait)
   }
 }"""
-    
+
     def _generate_loading_component(self) -> str:
         """Generate Loading component."""
         return """import { CircularProgress, Box, Typography } from '@mui/material'
@@ -466,7 +489,7 @@ export function Loading({ message = 'Loading...' }: LoadingProps) {
     </Box>
   )
 }"""
-    
+
     def _generate_error_component(self) -> str:
         """Generate ErrorDisplay component."""
         return """import { Alert, AlertTitle, Button, Box } from '@mui/material'
@@ -493,7 +516,7 @@ export function ErrorDisplay({ error, onRetry }: ErrorDisplayProps) {
     </Box>
   )
 }"""
-    
+
     def _generate_vite_env(self) -> str:
         """Generate vite-env.d.ts file."""
         return """/// <reference types="vite/client" />
@@ -505,11 +528,11 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }"""
-    
+
     def _generate_env_example(self, api_base_url: str) -> str:
         """Generate .env.example file."""
         return f"VITE_API_URL={api_base_url}"
-    
+
     def _generate_eslint_config(self) -> str:
         """Generate .eslintrc.json file."""
         return """{
