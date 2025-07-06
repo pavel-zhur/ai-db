@@ -204,4 +204,4 @@ async def test_new_behavior(temp_repo_path: Path):
         pass
 ```
 
-Note: Only async tests exist. Synchronous API is not supported.
+Note: Only async tests exist. Synchronous API has been completely removed.
