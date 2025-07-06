@@ -26,6 +26,17 @@ This document outlines Python-specific coding standards for this project.
 
 - Please don't do workarounds, do only best practices, and if something at hand doesn't work - analyze the reason, fix the root problem, or talk to me and let me decide.
 
+## Code Cleanup Principle
+
+**Remove obsolete code immediately**: If code is no longer needed, no longer functional, or has been superseded by a new implementation, it must be removed completely. Do not leave dead code, unused tests, deprecated functions, or obsolete files in the codebase.
+
+**Examples of code that must be removed:**
+- Tests for APIs that no longer exist
+- Deprecated functions or classes that have been replaced
+- Unused imports, variables, or configuration files
+- Old implementation files when new ones replace them
+- Comments referring to removed functionality
+
 # Tests strategy
 
 - Tests should test the behavior, not the implementation details.
