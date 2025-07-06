@@ -4,9 +4,12 @@ FROM python:3.13-slim
 ARG TZ
 ENV TZ="$TZ"
 
-# Install Node.js 22, npm, and all development tools in consolidated layers
-RUN apt-get update && apt-get install -y curl && \
+# Install Node.js 22, npm, Docker, and all development tools in consolidated layers
+RUN apt-get update && apt-get install -y curl ca-certificates gnupg && \
     curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
     apt-get install -y \
     nodejs \
     less \
@@ -26,13 +29,19 @@ RUN apt-get update && apt-get install -y curl && \
     aggregate \
     jq \
     wget \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin \
     && npm install -g npm@latest \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Create node user (similar to the official node image)
 RUN groupadd --gid 1000 node \
-    && useradd --uid 1000 --gid node --shell /bin/bash --create-home node
+    && useradd --uid 1000 --gid node --shell /bin/bash --create-home node \
+    && usermod -aG docker node
 
 # Set up npm global directory and permissions
 RUN mkdir -p /usr/local/share/npm-global && \
