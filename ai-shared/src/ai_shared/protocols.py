@@ -1,7 +1,8 @@
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 
+@runtime_checkable
 class TransactionProtocol(Protocol):
     """Interface that git-layer implements for transaction management.
 
