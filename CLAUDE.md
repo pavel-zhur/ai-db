@@ -39,7 +39,12 @@ This document outlines Python-specific coding standards for this project.
 
 # Tests strategy
 
+## Tests Logic
+
 - Tests should test the behavior, not the implementation details.
+## Test-Production Separation
+
+**Production code must never contain test-specific logic**: No test-related conditionals, imports, or workarounds in production code. Design for testability through dependency injection and clean interfaces, but keep test concerns completely separate from production logic.
 
 # Exception Handling Guidelines
 
