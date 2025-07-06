@@ -79,3 +79,7 @@ RUN echo 'export PROMPT_COMMAND="history -a"' >> /home/node/.bashrc && \
 
 # Install global npm packages
 RUN npm install -g @anthropic-ai/claude-code
+
+# Install Poetry for Python dependency management
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    echo 'export PATH="/home/node/.local/bin:$PATH"' >> /home/node/.bashrc

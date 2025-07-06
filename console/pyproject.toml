@@ -1,41 +1,41 @@
-[project]
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
 name = "console"
 version = "0.1.0"
 description = "Interactive console for AI-DB and AI-Frontend with natural language interface"
+authors = ["AI-DB Team"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "ai-db @ file:///${PROJECT_ROOT}/ai-db",
-    "ai-frontend @ file:///${PROJECT_ROOT}/ai-frontend", 
-    "git-layer @ file:///${PROJECT_ROOT}/git-layer",
-    "rich>=13.0.0",
-    "pyyaml>=6.0",
-    "pydantic>=2.0.0",
-    "dependency-injector>=4.0.0",
-    "click>=8.0.0",
-    "tabulate>=0.9.0",
-]
+repository = "https://github.com/pavel-zhur/ai-db"
+packages = [{include = "console", from = "src"}]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.0.0",
-    "mypy>=1.0.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-]
+[tool.poetry.dependencies]
+python = "^3.13"
+ai-shared = {path = "../ai-shared", develop = true}
+ai-db = {path = "../ai-db", develop = true}
+ai-frontend = {path = "../ai-frontend", develop = true}
+git-layer = {path = "../git-layer", develop = true}
+rich = "^13.0.0"
+pyyaml = "^6.0"
+pydantic = "^2.0.0"
+dependency-injector = "^4.0.0"
+click = "^8.0.0"
+tabulate = "^0.9.0"
 
-[project.scripts]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4"
+pytest-asyncio = "^0.24"
+pytest-cov = "^6.0"
+pytest-mock = "^3.14"
+mypy = "^1.16"
+ruff = "^0.12"
+black = "^25.1"
+
+[tool.poetry.scripts]
 console = "console.main:main"
-
-[build-system]
-requires = ["setuptools>=68.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
 
 [tool.mypy]
 python_version = "3.13"

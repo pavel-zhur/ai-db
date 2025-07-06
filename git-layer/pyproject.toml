@@ -1,37 +1,42 @@
-[tool.black]
-line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311']
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "git-layer"
+version = "0.1.0"
+description = "Git-based transaction management layer for AI-DB"
+authors = ["AI-DB Team"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/pavel-zhur/ai-db"
+packages = [{include = "git_layer", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+ai-shared = {path = "../ai-shared", develop = true}
+GitPython = "^3.1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4"
+pytest-asyncio = "^0.24"
+mypy = "^1.16"
+ruff = "^0.12"
+black = "^25.1"
 
 [tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
+python_version = "3.13"
+strict = true
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py38"
-select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-]
+target-version = "py313"
+select = ["E", "F", "I", "N", "W"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-addopts = "-v --strict-markers"
+asyncio_mode = "auto"

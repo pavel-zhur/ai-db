@@ -14,8 +14,10 @@
         "esbenp.prettier-vscode",
         "eamodio.gitlens",
         "ms-python.python",
-        "ms-python.pylint",
         "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
         "streetsidesoftware.code-spell-checker"
       ],
       "settings": {

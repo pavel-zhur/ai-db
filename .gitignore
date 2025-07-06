@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+*.coverage
+.coverage.*
+htmlcov/
+
+# Poetry
+poetry.lock
+
+# Virtual Environments
+**/venv/
+**/.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Project specific
+*.db
+*.sqlite
+*.sqlite3
+
+# Git repositories for testing
+/test-repos/
+/tmp/

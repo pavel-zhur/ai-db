@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Build base image first
+  base:
+    image: ai-db-system:base
+    build:
+      context: .
+      dockerfile: docker/base/Dockerfile
+    command: echo "Base image built"
+
+  ai-hub:
+    build: ./ai-hub
+    depends_on:
+      - base
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_DB_API_KEY=${AI_DB_API_KEY}
+    volumes:
+      - git-repos:/data/repos
+
+  console:
+    build: ./console
+    depends_on:
+      - base
+    stdin_open: true
+    tty: true
+    volumes:
+      - git-repos:/data/repos
+
+  mcp-ai-db:
+    build: ./mcp
+    depends_on:
+      - base
+    command: ["ai-db-mcp"]
+    volumes:
+      - git-repos:/data/repos
+
+  mcp-ai-frontend:
+    build: ./mcp
+    depends_on:
+      - base
+    command: ["ai-frontend-mcp"]
+    volumes:
+      - git-repos:/data/repos
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - git-repos:/data/repos:ro
+
+  # Test runner service - can test all components with dependencies
+  test-runner:
+    image: ai-db-system:base
+    depends_on:
+      - base
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: |
+      bash -c "
+        echo '=== Running tests and linting for all components ==='
+        for component in ai-shared ai-db ai-frontend git-layer console mcp ai-hub; do
+          echo \"Testing \$component...\"
+          cd /workspace/\$component
+          poetry install
+          poetry run pytest || echo \"FAILED: \$component tests\"
+          poetry run mypy . || echo \"FAILED: \$component mypy\"
+          poetry run ruff check . || echo \"FAILED: \$component ruff\"
+          poetry run black --check . || echo \"FAILED: \$component black\"
+        done
+      "
+
+volumes:
+  git-repos:

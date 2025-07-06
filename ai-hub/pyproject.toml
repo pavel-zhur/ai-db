@@ -3,35 +3,32 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "mcp"
+name = "ai-hub"
 version = "0.1.0"
-description = "MCP servers for AI-DB and AI-Frontend"
+description = "HTTP API server for AI-DB frontend communication"
 authors = ["AI-DB Team"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/pavel-zhur/ai-db"
-packages = [{include = "mcp", from = "src"}]
+packages = [{include = "ai_hub", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.13"
 ai-shared = {path = "../ai-shared", develop = true}
-mcp = "^1.0.0"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
 pydantic = "^2.5.0"
 pydantic-settings = "^2.1.0"
-asyncio = "^3.4.3"
-structlog = "^23.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4"
 pytest-asyncio = "^0.24"
-pytest-mock = "^3.14"
 mypy = "^1.16"
 ruff = "^0.12"
 black = "^25.1"
 
 [tool.poetry.scripts]
-ai-db-mcp = "mcp.ai_db_server:main"
-ai-frontend-mcp = "mcp.ai_frontend_server:main"
+ai-hub = "ai_hub.main:main"
 
 [tool.mypy]
 python_version = "3.13"

@@ -57,3 +57,32 @@ Let exceptions propagate to where they can be meaningfully handled. Trust your c
 - `ERROR`: Unexpected failures
 - `WARN`: Expected but notable conditions
 - `INFO`: Normal operational events
+
+# Development Commands
+
+When working on any component in this monorepo, use Poetry for all Python operations:
+
+```bash
+# Navigate to the component directory first
+cd ai-db  # or ai-shared, ai-frontend, git-layer, console, mcp, ai-hub
+
+# Install dependencies (creates isolated virtual environment)
+poetry install
+
+# Run tests
+poetry run pytest
+
+# Run linting
+poetry run mypy .
+poetry run ruff check .
+poetry run black --check .
+
+# Format code
+poetry run black .
+poetry run ruff check --fix .
+
+# Run component directly
+poetry run python -m ai_db  # or relevant module name
+```
+
+Never install packages globally. Always use `poetry run` to ensure you're using the correct environment for each component.

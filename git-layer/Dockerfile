@@ -7,4 +7,4 @@ RUN poetry install --no-dev
 COPY src/ ./src/
 
 # Component-specific command
-CMD ["python", "-m", "ai_frontend"]
+CMD ["python", "-m", "git_layer"]

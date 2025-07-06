@@ -1,0 +1,23 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "ai-shared"
+version = "0.1.0"
+description = "Shared interfaces for AI-DB system components"
+authors = ["AI-DB Team"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/pavel-zhur/ai-db"
+packages = [{include = "ai_shared", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4"
+pytest-asyncio = "^0.24"
+mypy = "^1.16"
+ruff = "^0.12"
+black = "^25.1"

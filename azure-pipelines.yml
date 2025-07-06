@@ -1,0 +1,49 @@
+trigger:
+  - main
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job: Test
+    strategy:
+      matrix:
+        ai-shared:
+          component: 'ai-shared'
+        ai-db:
+          component: 'ai-db'
+        ai-frontend:
+          component: 'ai-frontend'
+        git-layer:
+          component: 'git-layer'
+        console:
+          component: 'console'
+        mcp:
+          component: 'mcp'
+        ai-hub:
+          component: 'ai-hub'
+    
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.13'
+      
+      - script: pip install poetry
+        displayName: 'Install Poetry'
+      
+      - script: |
+          cd $(component)
+          poetry install
+          poetry run pytest
+          poetry run mypy .
+          poetry run ruff check .
+        displayName: 'Test $(component)'
+  
+  - job: Integration
+    dependsOn: Test
+    steps:
+      - script: |
+          docker-compose build
+          docker-compose run test-runner
+        displayName: 'Integration Tests'
