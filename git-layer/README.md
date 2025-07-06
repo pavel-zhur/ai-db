@@ -184,11 +184,13 @@ except git_layer.RepositoryError as e:
 Run the test suite:
 
 ```bash
-# All tests
+# All tests (all are async)
 poetry run pytest
 
-# Only async tests (recommended)
-poetry run pytest tests/test_*_async.py
+# Specific test categories
+poetry run pytest tests/test_transaction_async.py  # Transaction functionality
+poetry run pytest tests/test_repository_async.py   # Git repository operations
+poetry run pytest tests/test_integration_async.py  # Integration scenarios
 
 # With coverage
 poetry run pytest --cov=git_layer

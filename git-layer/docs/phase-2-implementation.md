@@ -173,19 +173,29 @@ This provides context while preserving the original error for debugging.
 
 ### Test Categories
 
-- **Unit tests**: Individual method behavior (`test_repository_async.py`)
-- **Integration tests**: Full transaction flows (`test_transaction_async.py`) 
-- **System tests**: Cross-component scenarios (`test_integration_async.py`)
+All tests are async and use pytest-asyncio 1.0+:
+
+- **Repository tests**: Git operations and repository management (`test_repository_async.py`)
+- **Transaction tests**: Transaction lifecycle and protocol compliance (`test_transaction_async.py`) 
+- **Integration tests**: End-to-end workflows and recovery scenarios (`test_integration_async.py`)
 
 ### Test Data Management
 
-- Uses temporary directories for isolation
+- Uses temporary directories for complete isolation
 - No shared state between tests
-- Mock AI operations, use real Git
+- Mock AI operations, use real Git repositories
+- Automatic cleanup via pytest fixtures
+
+### Test Coverage
+
+- **31 async tests** covering all functionality
+- **TransactionProtocol compliance** verified
+- **Error scenarios** and crash recovery tested
+- **Write locking** and concurrency constraints verified
 
 ### Adding New Tests
 
-Follow existing patterns:
+Follow existing async patterns:
 ```python
 @pytest.mark.asyncio
 async def test_new_behavior(temp_repo_path: Path):
@@ -193,3 +203,5 @@ async def test_new_behavior(temp_repo_path: Path):
         # Test behavior, not implementation
         pass
 ```
+
+Note: Only async tests exist. Synchronous API is not supported.
