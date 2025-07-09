@@ -4,21 +4,21 @@ FROM ai-db-system:base
 ENV POETRY_NO_INTERACTION=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Copy local dependencies from parent directory context
-# NOTE: Docker build should be run from workspace root with: docker build -f mcp/Dockerfile .
-COPY ai-shared ./ai-shared
-COPY ai-db ./ai-db
-COPY ai-frontend ./ai-frontend
-COPY git-layer ./git-layer
+# Set working directory to parent level to maintain relative paths
+WORKDIR /workspace
 
-# Copy component-specific files
-COPY mcp/pyproject.toml mcp/poetry.lock* ./
+# Copy all required components maintaining directory structure
+COPY ai-shared /workspace/ai-shared
+COPY ai-db /workspace/ai-db
+COPY ai-frontend /workspace/ai-frontend
+COPY git-layer /workspace/git-layer
+COPY mcp /workspace/mcp
+
+# Change to mcp directory
+WORKDIR /workspace/mcp
 
 # Install dependencies
 RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
-
-# Copy component source code
-COPY mcp/src/ ./src/
 
 # Component-specific command
 # Default to ai-db-mcp, can be overridden
