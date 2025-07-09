@@ -99,6 +99,11 @@ class AIAgent:
             ),
         ]
 
+        # Log the messages being sent to AI
+        logger.info(f"Sending query analysis request to AI")
+        logger.info(f"System prompt: {system_prompt}")
+        logger.info(f"Human message: Query: {query}\nGranted permissions: {permissions.value}{error_context}")
+
         try:
             # Get operation plan from AI
             response = await self._llm.ainvoke(messages)
@@ -106,7 +111,9 @@ class AIAgent:
             content = (
                 response.content if isinstance(response.content, str) else str(response.content)
             )
-            plan = self._operation_parser.parse(content)
+            logger.info(f"AI response for query analysis: {content}")
+            plan_dict = self._operation_parser.parse(content)
+            plan = OperationPlan(**plan_dict)
 
             # Check permissions
             required_perm = PermissionLevel(plan.permission_level)
@@ -149,13 +156,20 @@ class AIAgent:
             HumanMessage(content=f"Query: {query}\nOperation type: {operation.operation_type}"),
         ]
 
+        # Log the messages being sent to AI
+        logger.info(f"Sending execution plan request to AI")
+        logger.info(f"System prompt: {system_prompt}")
+        logger.info(f"Human message: Query: {query}\nOperation type: {operation.operation_type}")
+
         try:
             response = await self._llm.ainvoke(messages)
             # Ensure we have a string content
             content = (
                 response.content if isinstance(response.content, str) else str(response.content)
             )
-            plan = self._execution_parser.parse(content)
+            logger.info(f"AI response for execution plan: {content}")
+            plan_dict = self._execution_parser.parse(content)
+            plan = ExecutionPlan(**plan_dict)
 
             # Store Python code if generated
             if plan.python_code:
@@ -202,13 +216,20 @@ class AIAgent:
             HumanMessage(content=f"Validation error: {error_message}"),
         ]
 
+        # Log the messages being sent to AI
+        logger.info(f"Sending validation error recovery request to AI")
+        logger.info(f"System prompt: {system_prompt.format(schema_context='[schema details]', operation_details='[operation details]')}")
+        logger.info(f"Human message: Validation error: {error_message}")
+
         try:
             response = await self._llm.ainvoke(messages)
             # Ensure we have a string content
             content = (
                 response.content if isinstance(response.content, str) else str(response.content)
             )
-            plan = self._execution_parser.parse(content)
+            logger.info(f"AI response for validation error recovery: {content}")
+            plan_dict = self._execution_parser.parse(content)
+            plan = ExecutionPlan(**plan_dict)
 
             if plan.error:
                 return None

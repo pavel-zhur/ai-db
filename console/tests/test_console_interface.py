@@ -59,6 +59,8 @@ class TestConsoleInterface:
             assert console_interface._git_transaction is not None
             assert console_interface._ai_db is not None
             assert console_interface._ai_frontend is not None
+            # Verify transaction was activated
+            mock_git_transaction.begin.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_begin_transaction_already_active(
@@ -92,8 +94,8 @@ class TestConsoleInterface:
         assert console_interface._ai_db is None
         assert console_interface._ai_frontend is None
 
-        # Verify git transaction was exited properly
-        mock_git_transaction.__aexit__.assert_called_once_with(None, None, None)
+        # Verify git transaction was committed properly
+        mock_git_transaction.commit.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_rollback_transaction(
@@ -115,10 +117,8 @@ class TestConsoleInterface:
         assert console_interface._ai_db is None
         assert console_interface._ai_frontend is None
 
-        # Verify git transaction was exited with exception
-        mock_git_transaction.__aexit__.assert_called_once()
-        args = mock_git_transaction.__aexit__.call_args[0]
-        assert args[0] is Exception
+        # Verify git transaction was rolled back properly
+        mock_git_transaction.rollback.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_execute_db_query(

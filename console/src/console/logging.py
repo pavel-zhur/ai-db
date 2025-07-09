@@ -1,6 +1,7 @@
 """Logging configuration for the console."""
 
 import logging
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -27,11 +28,15 @@ class TraceLogger:
         with open(self._trace_file, "a") as f:
             f.write(f"[{timestamp}] SYSTEM: {response}\n")
 
-    def log_error(self, error: str) -> None:
-        """Log error."""
+    def log_error(self, error: str, include_traceback: bool = True) -> None:
+        """Log error with optional stack trace."""
         timestamp = datetime.now().isoformat()
         with open(self._trace_file, "a") as f:
             f.write(f"[{timestamp}] ERROR: {error}\n")
+            if include_traceback:
+                tb = traceback.format_exc()
+                if tb and tb != "NoneType: None\n":
+                    f.write(f"[{timestamp}] TRACEBACK:\n{tb}\n")
 
 
 def setup_logging(

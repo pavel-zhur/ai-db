@@ -85,6 +85,9 @@ def mock_git_transaction() -> AsyncMock:
     mock = AsyncMock()
     mock.__aenter__ = AsyncMock(return_value=mock)
     mock.__aexit__ = AsyncMock(return_value=None)
+    mock.begin = AsyncMock()
+    mock.commit = AsyncMock()
+    mock.rollback = AsyncMock()
     mock.path = "/test/repo"
     mock.id = "test-transaction-id"
     return mock

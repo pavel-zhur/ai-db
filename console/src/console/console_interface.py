@@ -168,7 +168,10 @@ class ConsoleInterface:
         except Exception as e:
             error_msg = str(e)
             self._output_formatter.format_error(error_msg)
-            self._trace_logger.log_error(error_msg)
+            # Log with full traceback
+            self._trace_logger.log_error(error_msg, include_traceback=True)
+            # Also log to Python logger with traceback
+            logger.exception(f"Error processing command: {error_msg}")
             self._session_state.add_entry(
                 user_input=user_input, error=error_msg, command_type=cmd_type
             )
@@ -183,6 +186,8 @@ class ConsoleInterface:
             self._git_transaction = await git_layer.begin(
                 repo_path=self._config.git_layer.repo_path, message="Console transaction"
             )
+            # Activate the transaction
+            await self._git_transaction.begin()
             self._session_state.transaction_active = True
             self._session_state.transaction_id = self._git_transaction.id
 
@@ -217,7 +222,8 @@ class ConsoleInterface:
             return
 
         try:
-            await self._git_transaction.__aexit__(None, None, None)
+            # Commit the transaction directly
+            await self._git_transaction.commit()
             self._session_state.transaction_active = False
             self._session_state.transaction_id = None
             self._git_transaction = None
@@ -228,6 +234,7 @@ class ConsoleInterface:
             self._trace_logger.log_output("Transaction committed")
 
         except Exception as e:
+            logger.exception("Failed to commit transaction")
             self._output_formatter.format_error(f"Failed to commit: {e!s}")
             raise
 
@@ -238,8 +245,8 @@ class ConsoleInterface:
             return
 
         try:
-            # Force rollback by raising exception in context manager
-            await self._git_transaction.__aexit__(Exception, Exception("Manual rollback"), None)
+            # Rollback the transaction directly
+            await self._git_transaction.rollback()
             self._session_state.transaction_active = False
             self._session_state.transaction_id = None
             self._git_transaction = None
@@ -250,6 +257,7 @@ class ConsoleInterface:
             self._trace_logger.log_output("Transaction rolled back")
 
         except Exception as e:
+            logger.exception("Failed to rollback transaction")
             self._output_formatter.format_error(f"Failed to rollback: {e!s}")
             raise
 
