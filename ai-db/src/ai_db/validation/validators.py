@@ -23,8 +23,7 @@ class DataValidator:
             validate(instance=row, schema=schema)
         except JsonSchemaError as e:
             raise ValidationError(
-                f"Row validation failed for table {table.name}: {e.message}",
-                details=[str(e)]
+                f"Row validation failed for table {table.name}: {e.message}", details=[str(e)]
             ) from e
 
     def validate_rows(self, rows: list[dict[str, Any]], table: Table) -> list[str]:
@@ -51,8 +50,7 @@ class DataValidator:
 
         if errors and raise_on_error:
             raise ValidationError(
-                f"Table {table.name} validation failed",
-                details=errors[:10]  # Limit error details
+                f"Table {table.name} validation failed", details=errors[:10]  # Limit error details
             )
 
         return errors if errors else None

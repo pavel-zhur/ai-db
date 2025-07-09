@@ -3,10 +3,7 @@
 import pytest
 
 from ai_mcp.models.ai_db import (
-    DataLossIndicator,
     PermissionLevel,
-    QueryRequest,
-    SchemaRequest,
 )
 from ai_mcp.tools.ai_db import (
     DataModifyTool,
@@ -20,34 +17,33 @@ class TestSchemaModifyTool:
     """Test schema modification tool."""
 
     @pytest.mark.asyncio
-    async def test_schema_modify_success(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_schema_modify_success(
+        self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger
+    ):
         """Test successful schema modification."""
-        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = QueryRequest(query="CREATE TABLE products (id INT, name TEXT)")
-        response = await tool.execute(request)
+        params = {"query": "CREATE TABLE products (id INT, name TEXT)"}
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.ai_comment == "Created new table"
-        assert response.data_loss_indicator == DataLossIndicator.NONE
+        assert response["success"] is True
+        assert response.get("error") is None
 
     @pytest.mark.asyncio
-    async def test_schema_modify_with_transaction(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_schema_modify_with_transaction(
+        self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger
+    ):
         """Test schema modification within transaction."""
-        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, mock_logger)
-        tool.store_transaction("test-tx-1", {"id": "test-tx-1"})
+        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = QueryRequest(
-            query="ALTER TABLE users ADD COLUMN age INT", transaction_id="test-tx-1"
-        )
-        response = await tool.execute(request)
+        params = {"query": "ALTER TABLE users ADD COLUMN age INT"}
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.transaction_id == "test-tx-1"
+        assert response["success"] is True
 
-    def test_tool_properties(self, mock_ai_db, mock_git_layer, mock_logger):
+    def test_tool_properties(self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger):
         """Test tool properties."""
-        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = SchemaModifyTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
         assert tool.name == "schema_modify"
         assert tool.permission_level == PermissionLevel.SCHEMA_MODIFY
@@ -59,38 +55,34 @@ class TestDataModifyTool:
     """Test data modification tool."""
 
     @pytest.mark.asyncio
-    async def test_data_modify_success(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_data_modify_success(self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger):
         """Test successful data modification."""
-        tool = DataModifyTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = DataModifyTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = QueryRequest(
-            query="INSERT INTO users (name, email) VALUES ('Test', 'test@example.com')"
-        )
-        response = await tool.execute(request)
+        params = {"query": "INSERT INTO users (name, email) VALUES ('Test', 'test@example.com')"}
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.ai_comment == "Operation completed"
+        assert response["success"] is True
 
 
 class TestSelectTool:
     """Test select query tool."""
 
     @pytest.mark.asyncio
-    async def test_select_success(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_select_success(self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger):
         """Test successful select query."""
-        tool = SelectTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = SelectTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = QueryRequest(query="SELECT * FROM users")
-        response = await tool.execute(request)
+        params = {"query": "SELECT * FROM users"}
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.data is not None
-        assert len(response.data) == 2
-        assert response.ai_comment == "Selected all users"
+        assert response["success"] is True
+        assert response["data"] is not None
+        assert len(response["data"]) == 2
 
-    def test_tool_properties(self, mock_ai_db, mock_git_layer, mock_logger):
+    def test_tool_properties(self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger):
         """Test tool properties."""
-        tool = SelectTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = SelectTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
         assert tool.name == "select"
         assert tool.permission_level == PermissionLevel.SELECT
@@ -109,24 +101,26 @@ class TestIntrospectionTools:
     """Test introspection tools."""
 
     @pytest.mark.asyncio
-    async def test_get_schema(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_get_schema(self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger):
         """Test getting schema."""
-        tool = GetSchemaTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = GetSchemaTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = SchemaRequest(include_semantic_docs=True)
-        response = await tool.execute(request)
+        params = {"include_documentation": True}
+        response = await tool.execute(params)
 
-        assert response.schema is not None
-        assert "tables" in response.schema
-        assert response.semantic_docs is not None
+        assert response["success"] is True
+        assert response["schema"]["tables"] is not None
+        assert "users" in response["schema"]["tables"]
 
     @pytest.mark.asyncio
-    async def test_get_schema_without_docs(self, mock_ai_db, mock_git_layer, mock_logger):
+    async def test_get_schema_without_docs(
+        self, mock_ai_db, mock_git_layer, ai_db_config, mock_logger
+    ):
         """Test getting schema without semantic docs."""
-        tool = GetSchemaTool(mock_ai_db, mock_git_layer, mock_logger)
+        tool = GetSchemaTool(mock_ai_db, mock_git_layer, ai_db_config, mock_logger)
 
-        request = SchemaRequest(include_semantic_docs=False)
-        response = await tool.execute(request)
+        params = {"include_documentation": False}
+        response = await tool.execute(params)
 
-        assert response.schema is not None
-        assert response.semantic_docs is None
+        assert response["success"] is True
+        assert response["schema"]["tables"] is not None

@@ -17,11 +17,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # Configuration (loaded once)
 # Using function to allow testing override
 def get_config() -> Config:
     """Get application configuration."""
     return Config()
+
 
 config = get_config()
 

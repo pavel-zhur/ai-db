@@ -41,11 +41,11 @@ class QueryCompiler:
             # Serialize the compiled code and source
             query_plan = {
                 "source": python_code,
-                "byte_code": base64.b64encode(marshal.dumps(byte_code)).decode('utf-8'),
+                "byte_code": base64.b64encode(marshal.dumps(byte_code)).decode("utf-8"),
             }
 
             # Return as base64-encoded pickle
-            return base64.b64encode(pickle.dumps(query_plan)).decode('utf-8')
+            return base64.b64encode(pickle.dumps(query_plan)).decode("utf-8")
 
         except Exception as e:
             logger.error(f"Failed to compile query: {e}")
@@ -63,17 +63,17 @@ class QueryCompiler:
 
             # Create execution environment
             exec_globals = self._safe_globals.copy()
-            exec_globals['__tables__'] = table_data
+            exec_globals["__tables__"] = table_data
             exec_locals: dict[str, Any] = {}
 
             # Deserialize and execute the byte code
-            byte_code = marshal.loads(base64.b64decode(query_plan['byte_code']))
+            byte_code = marshal.loads(base64.b64decode(query_plan["byte_code"]))
             exec(byte_code, exec_globals, exec_locals)
 
             # Find and call the query function
             query_func = None
             for name, obj in exec_locals.items():
-                if callable(obj) and name.startswith('query_'):
+                if callable(obj) and name.startswith("query_"):
                     query_func = obj
                     break
 
@@ -93,7 +93,6 @@ class QueryCompiler:
             logger.error(f"Failed to execute compiled query: {e}")
             raise CompilationError(f"Failed to execute query: {e!s}") from e
 
-
     def _validate_code(self, python_code: str) -> None:
         """Validate Python code for safety."""
         try:
@@ -106,8 +105,9 @@ class QueryCompiler:
                     raise CompilationError("Import statements are not allowed")
                 elif isinstance(node, ast.ImportFrom):
                     raise CompilationError("Import statements are not allowed")
-                elif isinstance(node, ast.Exec | ast.Eval) if hasattr(ast, 'Exec') else False:
-                    raise CompilationError("Exec/eval statements are not allowed")
+                # Check for eval (Exec was removed in Python 3)
+                elif hasattr(ast, "Eval") and isinstance(node, ast.Eval):
+                    raise CompilationError("Eval statements are not allowed")
                 elif isinstance(node, ast.Global):
                     raise CompilationError("Global statements are not allowed")
                 elif isinstance(node, ast.Nonlocal):
@@ -127,54 +127,58 @@ class QueryCompiler:
         globals_dict = safe_globals.copy()
 
         # Add safe built-ins
-        safe_builtins = {
-            'len': len,
-            'range': range,
-            'enumerate': enumerate,
-            'zip': zip,
-            'map': map,
-            'filter': filter,
-            'sorted': sorted,
-            'reversed': reversed,
-            'sum': sum,
-            'min': min,
-            'max': max,
-            'abs': abs,
-            'round': round,
-            'all': all,
-            'any': any,
-            'bool': bool,
-            'int': int,
-            'float': float,
-            'str': str,
-            'list': list,
-            'dict': dict,
-            'set': set,
-            'tuple': tuple,
-            'isinstance': isinstance,
-            'type': type,
+        safe_builtins: dict[str, Any] = {
+            "len": len,
+            "range": range,
+            "enumerate": enumerate,
+            "zip": zip,
+            "map": map,
+            "filter": filter,
+            "sorted": sorted,
+            "reversed": reversed,
+            "sum": sum,
+            "min": min,
+            "max": max,
+            "abs": abs,
+            "round": round,
+            "all": all,
+            "any": any,
+            "bool": bool,
+            "int": int,
+            "float": float,
+            "str": str,
+            "list": list,
+            "dict": dict,
+            "set": set,
+            "tuple": tuple,
+            "isinstance": isinstance,
+            "type": type,
         }
 
-        globals_dict['__builtins__'] = safe_builtins
+        globals_dict["__builtins__"] = safe_builtins
 
         # Add utility functions for queries
-        globals_dict.update({
-            'group_by': self._group_by,
-            'aggregate': self._aggregate,
-            'join_tables': self._join_tables,
-        })
+        globals_dict.update(
+            {
+                "group_by": self._group_by,
+                "aggregate": self._aggregate,
+                "join_tables": self._join_tables,
+            }
+        )
 
         # Add required RestrictedPython functions
-        safe_builtins = globals_dict.get('__builtins__', {})
-        safe_builtins.update({
-            '_getattr_': getattr,
-            '_getitem_': lambda obj, index: obj[index],
-            '_getiter_': iter,
-            '_iter_unpack_sequence_': lambda it, spec: list(it),
-        })
-        globals_dict['__builtins__'] = safe_builtins
+        safe_builtins = globals_dict.get("__builtins__", {})
+        safe_builtins.update(
+            {
+                "_getattr_": getattr,
+                "_getitem_": lambda obj, index: obj[index],
+                "_getiter_": iter,
+                "_iter_unpack_sequence_": lambda it, spec: list(it),
+            }
+        )
+        globals_dict["__builtins__"] = safe_builtins
 
-        return globals_dict
+        return globals_dict  # type: ignore[no-any-return]
 
     @staticmethod
     def _group_by(data: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:

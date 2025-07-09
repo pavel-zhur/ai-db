@@ -1,7 +1,6 @@
 """Custom exceptions for AI-DB."""
 
 
-
 class AIDBError(Exception):
     """Base exception for AI-DB."""
 

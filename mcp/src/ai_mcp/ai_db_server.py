@@ -1,7 +1,7 @@
 """AI-DB MCP Server implementation."""
 
 import asyncio
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import mcp.types as types
 import structlog
@@ -23,7 +23,7 @@ from .tools.ai_db import (
 
 def setup_logging(config: AIDBMCPConfig) -> structlog.BoundLogger:
     """Set up structured logging."""
-    processors = [
+    processors: List[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
@@ -46,10 +46,11 @@ def setup_logging(config: AIDBMCPConfig) -> structlog.BoundLogger:
         cache_logger_on_first_use=True,
     )
 
-    return structlog.get_logger()
+    logger: structlog.BoundLogger = structlog.get_logger()
+    return logger
 
 
-async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
+async def create_ai_db_server(config: AIDBMCPConfig) -> Server[Any]:
     """Create and configure the AI-DB MCP server."""
     logger = setup_logging(config)
     logger.info("Starting AI-DB MCP server", version=config.server_version)
@@ -59,25 +60,23 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
         logger.info("Using mock implementations")
         from .mocks import MockAIDB, MockGitLayer
 
-        ai_db = MockAIDB()
-        git_layer_module = MockGitLayer(config.repo_path)
+        ai_db: Any = MockAIDB()
+        git_layer_module: Any = MockGitLayer(config.repo_path)
     else:
         # Import real implementations
         import git_layer
         from ai_db import AIDB
-        from ai_db.config import AIDBConfig
 
         logger.info("Using real AI-DB and Git-Layer implementations")
 
-        # Let AI-DB read its own configuration from AI_DB_* environment variables
-        ai_db_config = AIDBConfig()
-        ai_db = AIDB(ai_db_config)
+        # AIDB constructor takes no arguments
+        ai_db = AIDB()
 
         # Git-layer is used through its begin() function - no instance needed
         git_layer_module = git_layer
 
     # Create MCP server
-    app = Server(config.server_name)
+    app: Server[Any] = Server(config.server_name)
 
     # Initialize tools
     tools = {
@@ -91,7 +90,7 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
         "init_from_folder": InitFromFolderTool(ai_db, git_layer_module, config, logger),
     }
 
-    @app.list_tools()
+    @app.list_tools()  # type: ignore[misc,no-untyped-call]
     async def list_tools() -> list[types.Tool]:
         """List available tools."""
         return [
@@ -108,7 +107,7 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
             for tool in tools.values()
         ]
 
-    @app.call_tool()
+    @app.call_tool()  # type: ignore[misc]
     async def call_tool(name: str, arguments: Dict[str, Any]) -> list[types.TextContent]:
         """Execute a tool."""
         logger.info("Executing tool", tool=name)
@@ -117,8 +116,7 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
             return [
                 types.TextContent(
                     type="text",
-                    text=f"Unknown tool: {name}",
-                    isError=True,
+                    text=f"Error: Unknown tool: {name}",
                 )
             ]
 
@@ -135,7 +133,6 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
                     types.TextContent(
                         type="text",
                         text=f"Error: {result.error or 'Operation failed'}",
-                        isError=True,
                     )
                 ]
             elif hasattr(result, "success") and not result.success:
@@ -144,7 +141,6 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
                     types.TextContent(
                         type="text",
                         text=f"Error: {result.error or 'Operation failed'}",
-                        isError=True,
                     )
                 ]
 
@@ -166,8 +162,7 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
             return [
                 types.TextContent(
                     type="text",
-                    text=f"Tool execution failed: {str(e)}",
-                    isError=True,
+                    text=f"Error: Tool execution failed: {str(e)}",
                 )
             ]
 
@@ -176,7 +171,7 @@ async def create_ai_db_server(config: AIDBMCPConfig) -> Server:
 
 def _get_tool_schema(tool_name: str) -> Dict[str, Any]:
     """Get the schema for a tool's parameters."""
-    schemas = {
+    schemas: Dict[str, Dict[str, Any]] = {
         "schema_modify": {
             "query": {
                 "type": "string",
@@ -215,7 +210,8 @@ def _get_tool_schema(tool_name: str) -> Dict[str, Any]:
             },
         },
     }
-    return schemas.get(tool_name, {})
+    result: Dict[str, Any] = schemas.get(tool_name, {})
+    return result
 
 
 def _get_required_fields(tool_name: str) -> list[str]:
@@ -281,7 +277,7 @@ Environment Variables:
 
     try:
         # Create server
-        app = await create_ai_db_server(config)
+        app: Server[Any] = await create_ai_db_server(config)
 
         # Run with stdio transport
         async with stdio_server() as streams:

@@ -1,6 +1,5 @@
 """Unit tests for validation and constraints."""
 
-
 import pytest
 
 from ai_db.core.models import Column, Constraint, ConstraintType, Table
@@ -19,7 +18,7 @@ class TestDataValidator:
                 Column(name="id", type="integer", nullable=False),
                 Column(name="name", type="string", nullable=False),
                 Column(name="age", type="integer", nullable=True),
-            ]
+            ],
         )
 
         validator = DataValidator()
@@ -35,7 +34,7 @@ class TestDataValidator:
             columns=[
                 Column(name="id", type="integer", nullable=False),
                 Column(name="name", type="string", nullable=False),
-            ]
+            ],
         )
 
         validator = DataValidator()
@@ -53,7 +52,7 @@ class TestDataValidator:
             columns=[
                 Column(name="id", type="integer", nullable=False),
                 Column(name="age", type="integer", nullable=False),
-            ]
+            ],
         )
 
         validator = DataValidator()
@@ -69,7 +68,7 @@ class TestDataValidator:
             columns=[
                 Column(name="id", type="integer", nullable=False),
                 Column(name="name", type="string", nullable=False),
-            ]
+            ],
         )
 
         validator = DataValidator()
@@ -95,12 +94,8 @@ class TestConstraintChecker:
             name="users",
             columns=[Column(name="id", type="integer", nullable=False)],
             constraints=[
-                Constraint(
-                    name="pk_users",
-                    type=ConstraintType.PRIMARY_KEY,
-                    columns=["id"]
-                )
-            ]
+                Constraint(name="pk_users", type=ConstraintType.PRIMARY_KEY, columns=["id"])
+            ],
         )
 
         data = [
@@ -122,12 +117,8 @@ class TestConstraintChecker:
             name="users",
             columns=[Column(name="id", type="integer", nullable=False)],
             constraints=[
-                Constraint(
-                    name="pk_users",
-                    type=ConstraintType.PRIMARY_KEY,
-                    columns=["id"]
-                )
-            ]
+                Constraint(name="pk_users", type=ConstraintType.PRIMARY_KEY, columns=["id"])
+            ],
         )
 
         data = [
@@ -153,12 +144,8 @@ class TestConstraintChecker:
                 Column(name="email", type="string"),
             ],
             constraints=[
-                Constraint(
-                    name="uk_email",
-                    type=ConstraintType.UNIQUE,
-                    columns=["email"]
-                )
-            ]
+                Constraint(name="uk_email", type=ConstraintType.UNIQUE, columns=["email"])
+            ],
         )
 
         data = [
@@ -189,9 +176,9 @@ class TestConstraintChecker:
                     type=ConstraintType.FOREIGN_KEY,
                     columns=["user_id"],
                     referenced_table="users",
-                    referenced_columns=["id"]
+                    referenced_columns=["id"],
                 )
-            ]
+            ],
         )
 
         users_data = [
@@ -207,9 +194,7 @@ class TestConstraintChecker:
         safe_executor = SafeExecutor()
         checker = ConstraintChecker(safe_executor)
         errors = await checker.check_constraints(
-            orders_table,
-            orders_data,
-            {"users": users_data, "orders": orders_data}
+            orders_table, orders_data, {"users": users_data, "orders": orders_data}
         )
 
         assert len(errors) == 0
@@ -229,9 +214,9 @@ class TestConstraintChecker:
                     type=ConstraintType.FOREIGN_KEY,
                     columns=["user_id"],
                     referenced_table="users",
-                    referenced_columns=["id"]
+                    referenced_columns=["id"],
                 )
-            ]
+            ],
         )
 
         users_data = [
@@ -247,9 +232,7 @@ class TestConstraintChecker:
         safe_executor = SafeExecutor()
         checker = ConstraintChecker(safe_executor)
         errors = await checker.check_constraints(
-            orders_table,
-            orders_data,
-            {"users": users_data, "orders": orders_data}
+            orders_table, orders_data, {"users": users_data, "orders": orders_data}
         )
 
         assert len(errors) == 1
@@ -268,17 +251,17 @@ class TestConstraintChecker:
                     name="chk_age",
                     type=ConstraintType.CHECK,
                     columns=["age"],
-                    definition="age >= 0 and age <= 150"
+                    definition="age >= 0 and age <= 150",
                 )
-            ]
+            ],
         )
 
         data = [
             {"age": 25},  # Valid
-            {"age": 0},   # Valid (boundary)
-            {"age": 150}, # Valid (boundary)
+            {"age": 0},  # Valid (boundary)
+            {"age": 150},  # Valid (boundary)
             {"age": -5},  # Invalid
-            {"age": 200}, # Invalid
+            {"age": 200},  # Invalid
         ]
 
         safe_executor = SafeExecutor()
@@ -298,10 +281,10 @@ class TestSafeExecutor:
         """Test executing a safe function."""
         executor = SafeExecutor()
 
-        code = '''
+        code = """
 def add_numbers(a, b):
     return a + b
-'''
+"""
 
         func = await executor.execute_function(code, "add_numbers")
         assert func is not None
@@ -313,11 +296,11 @@ def add_numbers(a, b):
         executor = SafeExecutor()
 
         # Try to import (should fail)
-        code = '''
+        code = """
 import os
 def bad_function():
     return os.system("ls")
-'''
+"""
 
         func = await executor.execute_function(code, "bad_function")
         assert func is None  # Should fail to compile

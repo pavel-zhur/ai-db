@@ -13,11 +13,11 @@ class TestQueryCompiler:
         """Test compiling a valid query."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 def query_select(tables):
     users = tables.get("users", [])
     return [u for u in users if u.get("is_active", False)]
-'''
+"""
 
         compiled = compiler.compile_query(code)
         assert compiled is not None
@@ -27,11 +27,11 @@ def query_select(tables):
         """Test compiling query with syntax error."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 def query_select(tables):
     users = tables.get("users", [])
     return [u for u in users if  # Syntax error
-'''
+"""
 
         with pytest.raises(CompilationError) as exc:
             compiler.compile_query(code)
@@ -42,11 +42,11 @@ def query_select(tables):
         """Test that imports are forbidden."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 import os
 def query_select(tables):
     return []
-'''
+"""
 
         with pytest.raises(CompilationError) as exc:
             compiler.compile_query(code)
@@ -57,10 +57,10 @@ def query_select(tables):
         """Test that code must define a function."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 # Just a comment, no function
 result = []
-'''
+"""
 
         with pytest.raises(CompilationError) as exc:
             compiler.compile_query(code)
@@ -71,11 +71,11 @@ result = []
         """Test executing a compiled query."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 def query_active_users(tables):
     users = tables.get("users", [])
     return [u for u in users if u.get("is_active", False)]
-'''
+"""
 
         # Compile
         compiled = compiler.compile_query(code)
@@ -99,7 +99,7 @@ def query_active_users(tables):
         """Test query with aggregation."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 def query_count_by_status(tables):
     users = tables.get("users", [])
     active_count = sum(1 for u in users if u.get("is_active", False))
@@ -109,7 +109,7 @@ def query_count_by_status(tables):
         {"status": "active", "count": active_count},
         {"status": "inactive", "count": inactive_count}
     ]
-'''
+"""
 
         compiled = compiler.compile_query(code)
 
@@ -134,7 +134,7 @@ def query_count_by_status(tables):
         """Test query with join operation."""
         compiler = QueryCompiler()
 
-        code = '''
+        code = """
 def query_users_with_orders(tables):
     users = tables.get("users", [])
     orders = tables.get("orders", [])
@@ -150,7 +150,7 @@ def query_users_with_orders(tables):
             })
 
     return result
-'''
+"""
 
         compiled = compiler.compile_query(code)
 
@@ -163,7 +163,7 @@ def query_users_with_orders(tables):
                 {"id": 101, "user_id": 1, "amount": 100},
                 {"id": 102, "user_id": 1, "amount": 200},
                 {"id": 103, "user_id": 2, "amount": 150},
-            ]
+            ],
         }
 
         result = compiler.execute_compiled(compiled, table_data)

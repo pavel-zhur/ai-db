@@ -3,9 +3,10 @@
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, Optional
 
 import structlog
+from ai_shared.protocols import TransactionProtocol
 
 from ...models.ai_db import PermissionLevel
 
@@ -59,7 +60,7 @@ class AIDBTool(ABC):
         return self.permission_level == PermissionLevel.SELECT
 
     @asynccontextmanager
-    async def _create_transaction(self, message: str):
+    async def _create_transaction(self, message: str) -> AsyncGenerator[TransactionProtocol, None]:
         """Create a new transaction for operations."""
         if self._config.use_mocks:
             from ...mocks import MockTransaction

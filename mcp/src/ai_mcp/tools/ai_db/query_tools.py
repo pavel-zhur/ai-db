@@ -31,7 +31,7 @@ class SchemaModifyTool(AIDBTool):
 
         try:
             # Create transaction for this operation
-            async with await self._create_transaction(
+            async with self._create_transaction(
                 f"Schema modification: {query[:50]}..."
             ) as transaction:
                 result = await self._ai_db.execute(
@@ -82,7 +82,7 @@ class DataModifyTool(AIDBTool):
 
         try:
             # Create transaction for this operation
-            async with await self._create_transaction(
+            async with self._create_transaction(
                 f"Data modification: {query[:50]}..."
             ) as transaction:
                 result = await self._ai_db.execute(
@@ -133,9 +133,7 @@ class SelectTool(AIDBTool):
 
         try:
             # Create read-only transaction for this operation
-            async with await self._create_transaction(
-                f"Select query: {query[:50]}..."
-            ) as transaction:
+            async with self._create_transaction(f"Select query: {query[:50]}...") as transaction:
                 result = await self._ai_db.execute(
                     query,
                     self.permission_level,
@@ -184,7 +182,7 @@ class ViewModifyTool(AIDBTool):
 
         try:
             # Create transaction for this operation
-            async with await self._create_transaction(
+            async with self._create_transaction(
                 f"View modification: {query[:50]}..."
             ) as transaction:
                 result = await self._ai_db.execute(
@@ -235,7 +233,7 @@ class ExecuteCompiledTool(AIDBTool):
 
         try:
             # Create read-only transaction for this operation
-            async with await self._create_transaction("Execute compiled query") as transaction:
+            async with self._create_transaction("Execute compiled query") as transaction:
                 result = await self._ai_db.execute_compiled(
                     compiled_plan,
                     transaction,
@@ -282,9 +280,7 @@ class CompileQueryTool(AIDBTool):
 
         try:
             # Create read-only transaction for this operation
-            async with await self._create_transaction(
-                f"Compile query: {query[:50]}..."
-            ) as transaction:
+            async with self._create_transaction(f"Compile query: {query[:50]}...") as transaction:
                 compiled_plan = await self._ai_db.compile_query(query, transaction)
 
                 return {

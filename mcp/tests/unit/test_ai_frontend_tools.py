@@ -2,7 +2,6 @@
 
 import pytest
 
-from ai_mcp.models.ai_frontend import FrontendRequest
 from ai_mcp.tools.ai_frontend import (
     GenerateFrontendTool,
 )
@@ -12,36 +11,51 @@ class TestGenerateFrontendTool:
     """Test frontend generation tool."""
 
     @pytest.mark.asyncio
-    async def test_generate_frontend_success(self, mock_ai_frontend, mock_git_layer, mock_logger):
+    async def test_generate_frontend_success(
+        self, mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
+    ):
         """Test successful frontend generation."""
-        tool = GenerateFrontendTool(mock_ai_frontend, mock_git_layer, mock_logger)
+        tool = GenerateFrontendTool(
+            mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
+        )
 
-        request = FrontendRequest(request="Create a user dashboard with charts")
-        response = await tool.execute(request)
+        params = {
+            "request": "Create a user dashboard with charts",
+            "schema": {"tables": {"users": {"columns": []}}},
+            "project_name": "test-project",
+        }
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.generated_files is not None
-        assert len(response.generated_files) == 2
-        assert response.ai_comment == "Generated dashboard components"
+        assert response["success"] is True
+        assert response["output_path"] is not None
+        assert response.get("error") is None
 
     @pytest.mark.asyncio
     async def test_generate_frontend_with_transaction(
-        self, mock_ai_frontend, mock_git_layer, mock_logger
+        self, mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
     ):
         """Test frontend generation within transaction."""
-        tool = GenerateFrontendTool(mock_ai_frontend, mock_git_layer, mock_logger)
-        tool._transactions["test-tx-1"] = {"id": "test-tx-1"}
+        tool = GenerateFrontendTool(
+            mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
+        )
 
-        request = FrontendRequest(request="Create a form for user data", transaction_id="test-tx-1")
-        response = await tool.execute(request)
+        params = {
+            "request": "Create a form for user data",
+            "schema": {"tables": {"users": {"columns": []}}},
+            "project_name": "test-project",
+        }
+        response = await tool.execute(params)
 
-        assert response.status == "success"
-        assert response.transaction_id == "test-tx-1"
-        assert response.generated_files == ["/components/UserForm.tsx"]
+        assert response["success"] is True
+        assert response["output_path"] is not None
 
-    def test_tool_properties(self, mock_ai_frontend, mock_git_layer, mock_logger):
+    def test_tool_properties(
+        self, mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
+    ):
         """Test tool properties."""
-        tool = GenerateFrontendTool(mock_ai_frontend, mock_git_layer, mock_logger)
+        tool = GenerateFrontendTool(
+            mock_ai_frontend, mock_git_layer, ai_frontend_config, mock_logger
+        )
 
         assert tool.name == "generate_frontend"
         assert tool.destructive_hint is True

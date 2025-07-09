@@ -36,7 +36,7 @@ class DIContainer(containers.DeclarativeContainer):
     data_validator = providers.Singleton(DataValidator)
 
     # Per-transaction components
-    transaction_context = providers.Dependency()  # Will be TransactionProtocol
+    transaction_context: providers.Dependency[TransactionProtocol] = providers.Dependency()
 
     transaction_manager = providers.Factory(
         TransactionManager,
@@ -105,9 +105,7 @@ class Engine:
             operation = await self._ai_agent.analyze_query(query, permissions, context)
 
             # Generate execution plan
-            execution_plan = await self._ai_agent.generate_execution_plan(
-                query, operation, context
-            )
+            execution_plan = await self._ai_agent.generate_execution_plan(query, operation, context)
 
             # Check for errors in plan
             if execution_plan.error:
@@ -120,9 +118,7 @@ class Engine:
 
             # Execute based on operation type
             if operation.operation_type == "select":
-                result = await self._execute_select(
-                    operation, yaml_store, context
-                )
+                result = await self._execute_select(operation, yaml_store, context)
             elif operation.operation_type in ["insert", "update", "delete"]:
                 result = await self._execute_data_modification(
                     operation, yaml_store, schema_store, constraint_checker, context
@@ -147,7 +143,7 @@ class Engine:
             result.transaction_id = transaction_context.id
             result.execution_time = time.time() - start_time
             result.ai_comment = (
-                execution_plan.interpretation if hasattr(execution_plan, 'interpretation') else None
+                execution_plan.interpretation if hasattr(execution_plan, "interpretation") else None
             )
 
             return result

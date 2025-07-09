@@ -1,6 +1,7 @@
 """Transaction context management for AI-DB."""
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
@@ -60,7 +61,7 @@ class TransactionManager:
         }
 
     @contextmanager
-    def savepoint(self, name: str):
+    def savepoint(self, name: str) -> Iterator[None]:
         """Create a savepoint within the transaction."""
         # For now, savepoints are not implemented
         # This is a placeholder for future functionality

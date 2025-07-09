@@ -22,7 +22,7 @@ class ConstraintChecker:
         all_tables_data: dict[str, list[dict[str, Any]]],
     ) -> list[str]:
         """Check all constraints for table data."""
-        errors = []
+        errors: list[str] = []
 
         for constraint in table.constraints:
             try:
@@ -48,7 +48,7 @@ class ConstraintChecker:
         errors: list[str],
     ) -> None:
         """Check primary key constraint."""
-        seen_keys: set[tuple] = set()
+        seen_keys: set[tuple[Any, ...]] = set()
 
         for i, row in enumerate(data):
             # Extract key values
@@ -56,9 +56,7 @@ class ConstraintChecker:
             for col in constraint.columns:
                 value = row.get(col)
                 if value is None:
-                    errors.append(
-                        f"Row {i}: Primary key column '{col}' cannot be NULL"
-                    )
+                    errors.append(f"Row {i}: Primary key column '{col}' cannot be NULL")
                     continue
                 key_values.append(value)
 
@@ -81,7 +79,7 @@ class ConstraintChecker:
         errors: list[str],
     ) -> None:
         """Check unique constraint."""
-        seen_values: set[tuple] = set()
+        seen_values: set[tuple[Any, ...]] = set()
 
         for i, row in enumerate(data):
             # Extract values
@@ -144,7 +142,7 @@ class ConstraintChecker:
             return
 
         # Build index of referenced values
-        ref_index: set[tuple] = set()
+        ref_index: set[tuple[Any, ...]] = set()
         for ref_row in ref_data:
             ref_values = []
             for col in constraint.referenced_columns:
@@ -200,8 +198,7 @@ def check_{constraint.name}(row):
 
         # Execute safely
         check_func = await self._safe_executor.execute_function(
-            func_code,
-            f"check_{constraint.name}"
+            func_code, f"check_{constraint.name}"
         )
 
         if not check_func:
@@ -212,9 +209,7 @@ def check_{constraint.name}(row):
         for i, row in enumerate(data):
             try:
                 if not check_func(row):
-                    errors.append(
-                        f"Row {i}: CHECK constraint {constraint.name} failed"
-                    )
+                    errors.append(f"Row {i}: CHECK constraint {constraint.name} failed")
             except Exception as e:
                 errors.append(
                     f"Row {i}: Error evaluating CHECK constraint {constraint.name}: {e!s}"

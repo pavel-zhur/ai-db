@@ -77,45 +77,40 @@ class SafeExecutor:
         globals_dict = safe_globals.copy()
 
         # Safe built-ins for constraints
-        safe_builtins = {
+        safe_builtins: dict[str, Any] = {
             # Comparison and logic
-            'True': True,
-            'False': False,
-            'None': None,
-
+            "True": True,
+            "False": False,
+            "None": None,
             # Type checking
-            'bool': bool,
-            'int': int,
-            'float': float,
-            'str': str,
-            'list': list,
-            'dict': dict,
-            'isinstance': isinstance,
-            'type': type,
-
+            "bool": bool,
+            "int": int,
+            "float": float,
+            "str": str,
+            "list": list,
+            "dict": dict,
+            "isinstance": isinstance,
+            "type": type,
             # Math operations
-            'abs': abs,
-            'min': min,
-            'max': max,
-            'round': round,
-            'sum': sum,
-
+            "abs": abs,
+            "min": min,
+            "max": max,
+            "round": round,
+            "sum": sum,
             # String operations
-            'len': len,
-
+            "len": len,
             # Safe functions
-            'all': all,
-            'any': any,
-            'zip': zip,
-            'range': range,
-
+            "all": all,
+            "any": any,
+            "zip": zip,
+            "range": range,
             # Required for RestrictedPython
-            '_getattr_': getattr,
-            '_getitem_': lambda obj, index: obj[index],
-            '_getiter_': iter,
-            '_iter_unpack_sequence_': lambda it, spec: list(it),
+            "_getattr_": getattr,
+            "_getitem_": lambda obj, index: obj[index],
+            "_getiter_": iter,
+            "_iter_unpack_sequence_": lambda it, spec: list(it),
         }
 
-        globals_dict['__builtins__'] = safe_builtins
+        globals_dict["__builtins__"] = safe_builtins
 
-        return globals_dict
+        return globals_dict  # type: ignore[no-any-return]

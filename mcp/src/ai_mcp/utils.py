@@ -8,7 +8,11 @@ def try_import(module_name: str, class_name: str) -> Optional[type]:
     """Try to import a class from a module."""
     try:
         module = importlib.import_module(module_name)
-        return getattr(module, class_name)
+        attr = getattr(module, class_name)
+        # Ensure we're returning a type
+        if isinstance(attr, type):
+            return attr
+        return None
     except (ImportError, AttributeError):
         return None
 

@@ -19,10 +19,7 @@ from ai_hub.service import AIHubService
 @pytest.fixture
 def test_config():
     """Test configuration with test paths."""
-    return Config(
-        git_repo_path="/tmp/test-repo",
-        ai_db_api_key="test-key"
-    )
+    return Config(git_repo_path="/tmp/test-repo", ai_db_api_key="test-key")
 
 
 @pytest.fixture

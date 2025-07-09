@@ -1,7 +1,7 @@
 """AI-Frontend MCP Server implementation."""
 
 import asyncio
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import mcp.types as types
 import structlog
@@ -19,7 +19,7 @@ from .tools.ai_frontend import (
 
 def setup_logging(config: AIFrontendMCPConfig) -> structlog.BoundLogger:
     """Set up structured logging."""
-    processors = [
+    processors: List[Any] = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
@@ -42,10 +42,11 @@ def setup_logging(config: AIFrontendMCPConfig) -> structlog.BoundLogger:
         cache_logger_on_first_use=True,
     )
 
-    return structlog.get_logger()
+    logger: structlog.BoundLogger = structlog.get_logger()
+    return logger
 
 
-async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
+async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server[Any]:
     """Create and configure the AI-Frontend MCP server."""
     logger = setup_logging(config)
     logger.info("Starting AI-Frontend MCP server", version=config.server_version)
@@ -55,8 +56,8 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
         logger.info("Using mock implementations")
         from .mocks import MockAIFrontend, MockGitLayer
 
-        ai_frontend = MockAIFrontend()
-        git_layer_module = MockGitLayer(config.repo_path)
+        ai_frontend: Any = MockAIFrontend()
+        git_layer_module: Any = MockGitLayer(config.repo_path)
     else:
         # Import real implementations
         import git_layer
@@ -72,7 +73,7 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
         git_layer_module = git_layer
 
     # Create MCP server
-    app = Server(config.server_name)
+    app: Server[Any] = Server(config.server_name)
 
     # Initialize tools
     tools = {
@@ -84,7 +85,7 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
         ),
     }
 
-    @app.list_tools()
+    @app.list_tools()  # type: ignore[misc,no-untyped-call]
     async def list_tools() -> list[types.Tool]:
         """List available tools."""
         return [
@@ -101,7 +102,7 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
             for tool in tools.values()
         ]
 
-    @app.call_tool()
+    @app.call_tool()  # type: ignore[misc]
     async def call_tool(name: str, arguments: Dict[str, Any]) -> list[types.TextContent]:
         """Execute a tool."""
         logger.info("Executing tool", tool=name)
@@ -110,8 +111,7 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
             return [
                 types.TextContent(
                     type="text",
-                    text=f"Unknown tool: {name}",
-                    isError=True,
+                    text=f"Error: Unknown tool: {name}",
                 )
             ]
 
@@ -128,7 +128,6 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
                     types.TextContent(
                         type="text",
                         text=f"Error: {result.error or 'Operation failed'}",
-                        isError=True,
                     )
                 ]
 
@@ -150,8 +149,7 @@ async def create_ai_frontend_server(config: AIFrontendMCPConfig) -> Server:
             return [
                 types.TextContent(
                     type="text",
-                    text=f"Tool execution failed: {str(e)}",
-                    isError=True,
+                    text=f"Error: Tool execution failed: {str(e)}",
                 )
             ]
 
@@ -249,7 +247,7 @@ Environment Variables:
 
     try:
         # Create server
-        app = await create_ai_frontend_server(config)
+        app: Server[Any] = await create_ai_frontend_server(config)
 
         # Run with stdio transport
         async with stdio_server() as streams:

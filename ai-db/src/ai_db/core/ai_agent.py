@@ -7,7 +7,7 @@ from dataclasses import asdict
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from ai_db.config import get_config
 from ai_db.core.models import (
@@ -66,7 +66,7 @@ class AIAgent:
         self._llm = ChatOpenAI(
             model=config.model,
             temperature=config.temperature,
-            api_key=config.api_key,
+            api_key=SecretStr(config.api_key),
             base_url=config.api_base,
             timeout=config.timeout_seconds,
         )
@@ -96,13 +96,17 @@ class AIAgent:
             SystemMessage(content=system_prompt),
             HumanMessage(
                 content=f"Query: {query}\nGranted permissions: {permissions.value}{error_context}"
-            )
+            ),
         ]
 
         try:
             # Get operation plan from AI
             response = await self._llm.ainvoke(messages)
-            plan = self._operation_parser.parse(response.content)
+            # Ensure we have a string content
+            content = (
+                response.content if isinstance(response.content, str) else str(response.content)
+            )
+            plan = self._operation_parser.parse(content)
 
             # Check permissions
             required_perm = PermissionLevel(plan.permission_level)
@@ -142,24 +146,25 @@ class AIAgent:
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Query: {query}\nOperation type: {operation.operation_type}")
+            HumanMessage(content=f"Query: {query}\nOperation type: {operation.operation_type}"),
         ]
 
         try:
             response = await self._llm.ainvoke(messages)
-            plan = self._execution_parser.parse(response.content)
+            # Ensure we have a string content
+            content = (
+                response.content if isinstance(response.content, str) else str(response.content)
+            )
+            plan = self._execution_parser.parse(content)
 
             # Store Python code if generated
             if plan.python_code:
                 operation.python_code = plan.python_code
 
             # Convert file updates
-            operation.file_updates = {
-                update.path: update.content
-                for update in plan.file_updates
-            }
+            operation.file_updates = {update.path: update.content for update in plan.file_updates}
 
-            return plan
+            return plan  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Failed to generate execution plan: {e}")
@@ -188,16 +193,22 @@ class AIAgent:
         )
 
         messages = [
-            SystemMessage(content=system_prompt.format(
-                schema_context=self._format_schema_context(context.schema),
-                operation_details=json.dumps(asdict(operation), indent=2)
-            )),
-            HumanMessage(content=f"Validation error: {error_message}")
+            SystemMessage(
+                content=system_prompt.format(
+                    schema_context=self._format_schema_context(context.schema),
+                    operation_details=json.dumps(asdict(operation), indent=2),
+                )
+            ),
+            HumanMessage(content=f"Validation error: {error_message}"),
         ]
 
         try:
             response = await self._llm.ainvoke(messages)
-            plan = self._execution_parser.parse(response.content)
+            # Ensure we have a string content
+            content = (
+                response.content if isinstance(response.content, str) else str(response.content)
+            )
+            plan = self._execution_parser.parse(content)
 
             if plan.error:
                 return None
@@ -206,12 +217,9 @@ class AIAgent:
             if plan.python_code:
                 operation.python_code = plan.python_code
 
-            operation.file_updates = {
-                update.path: update.content
-                for update in plan.file_updates
-            }
+            operation.file_updates = {update.path: update.content for update in plan.file_updates}
 
-            return plan
+            return plan  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Failed to handle validation error: {e}")

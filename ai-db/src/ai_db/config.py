@@ -1,6 +1,5 @@
 """Configuration management for AI-DB."""
 
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -29,34 +28,31 @@ class AIDBConfig(BaseSettings):
     log_level: str = Field(default="INFO")
     log_ai_interactions: bool = Field(default=False)
 
-    @field_validator('api_key')
+    @field_validator("api_key")
     @classmethod
-    def api_key_must_be_set(cls, v):
+    def api_key_must_be_set(cls, v: str) -> str:
         # For POC, allow empty API key but warn
         if not v:
             import logging
+
             logging.warning("AI_DB_API_KEY not set - using stub AI agent")
         return v or "stub-key"
 
-    @field_validator('max_retries')
+    @field_validator("max_retries")
     @classmethod
-    def max_retries_must_be_non_negative(cls, v):
+    def max_retries_must_be_non_negative(cls, v: int) -> int:
         if v < 0:
             raise ValueError("max_retries must be non-negative")
         return v
 
-    @field_validator('timeout_seconds')
+    @field_validator("timeout_seconds")
     @classmethod
-    def timeout_must_be_positive(cls, v):
+    def timeout_must_be_positive(cls, v: float) -> float:
         if v <= 0:
             raise ValueError("timeout_seconds must be positive")
         return v
 
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "env_prefix": "AI_DB_"
-    }
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "env_prefix": "AI_DB_"}
 
 
 _config: AIDBConfig | None = None

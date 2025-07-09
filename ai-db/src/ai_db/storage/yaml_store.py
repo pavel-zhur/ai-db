@@ -59,7 +59,7 @@ class YAMLStore:
             yaml_content = yaml.dump(
                 data, default_flow_style=False, sort_keys=False, allow_unicode=True
             )
-            async with aiofiles.open(file_path, 'w') as f:
+            async with aiofiles.open(file_path, "w") as f:
                 await f.write(yaml_content)
             logger.info(f"Successfully wrote {len(data)} records to table {table_name}")
             await self._transaction_context.operation_complete(
@@ -124,7 +124,7 @@ class YAMLStore:
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
-            async with aiofiles.open(file_path, 'w') as f:
+            async with aiofiles.open(file_path, "w") as f:
                 await f.write(content)
             logger.info(f"Successfully wrote file {relative_path}")
             await self._transaction_context.operation_complete(f"Wrote file {relative_path}")

@@ -89,8 +89,14 @@ cd ai-db  # or ai-shared, ai-frontend, git-layer, console, mcp, ai-hub
 # Install component dependencies (creates isolated virtual environment)
 poetry install
 
-# Run tests
+# Run tests (unit tests only - recommended for development)
+poetry run pytest -m 'not integration'
+
+# Run all tests including integration tests
 poetry run pytest
+
+# Run integration tests only
+poetry run pytest -m integration
 
 # Run linting
 poetry run mypy .

@@ -78,9 +78,7 @@ class TestAIHubIntegration:
 
         shutil.copytree(temp_repo, test_data_dir / "test_repo")
 
-        with DockerCompose(
-            filepath=docker_compose_file, compose_file_name="docker-compose.test.yml"
-        ) as compose:
+        with DockerCompose(docker_compose_file) as compose:
             # Wait for service to be healthy
             service_url = f"http://localhost:{compose.get_service_port('ai-hub', 8000)}"
 

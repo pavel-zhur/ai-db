@@ -13,6 +13,7 @@ class TestConfig:
         """Test default configuration values."""
         # Clear test environment variables
         import os
+
         git_repo_path = os.environ.pop("AI_HUB_GIT_REPO_PATH", None)
         api_key = os.environ.pop("AI_HUB_AI_DB_API_KEY", None)
 

@@ -1,6 +1,7 @@
 """Public API for AI-DB."""
 
 import logging
+from typing import Any
 
 from ai_shared.protocols import TransactionProtocol
 
@@ -24,7 +25,7 @@ class AIDB:
         # Set up logging
         logging.basicConfig(
             level=getattr(logging, get_config().log_level),
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
 
         # Initialize DI container
@@ -118,17 +119,15 @@ class AIDB:
             if loop.is_running():
                 # If called from async context
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(
-                        asyncio.run,
-                        self._engine.execute_compiled(compiled_plan, transaction)
+                        asyncio.run, self._engine.execute_compiled(compiled_plan, transaction)
                     )
                     return future.result()
             else:
                 # If called from sync context
-                return asyncio.run(
-                    self._engine.execute_compiled(compiled_plan, transaction)
-                )
+                return asyncio.run(self._engine.execute_compiled(compiled_plan, transaction))
 
         except AIDBError:
             raise
@@ -178,7 +177,7 @@ class AIDB:
 
     async def get_schema(
         self, transaction: TransactionProtocol, include_semantic_docs: bool = False
-    ) -> dict:
+    ) -> dict[str, Any]:
         """
         Get the current database schema.
 
@@ -197,11 +196,7 @@ class AIDB:
         schema = await schema_store.load_schema()
 
         # Convert to JSON format expected by ai-frontend
-        result = {
-            "tables": {},
-            "views": schema.views,
-            "version": schema.version
-        }
+        result: dict[str, Any] = {"tables": {}, "views": schema.views, "version": schema.version}
 
         for table_name, table in schema.tables.items():
             result["tables"][table_name] = {
@@ -211,7 +206,7 @@ class AIDB:
                         "type": col.type,
                         "nullable": col.nullable,
                         "default": col.default,
-                        "description": col.description
+                        "description": col.description,
                     }
                     for col in table.columns
                 ],
@@ -222,11 +217,11 @@ class AIDB:
                         "columns": const.columns,
                         "definition": const.definition,
                         "referenced_table": const.referenced_table,
-                        "referenced_columns": const.referenced_columns
+                        "referenced_columns": const.referenced_columns,
                     }
                     for const in table.constraints
                 ],
-                "description": table.description
+                "description": table.description,
             }
 
         if include_semantic_docs:
@@ -269,7 +264,7 @@ class AIDB:
                         schema_data = yaml.safe_load(f)
 
                     # Basic validation
-                    if not isinstance(schema_data, dict) or 'name' not in schema_data:
+                    if not isinstance(schema_data, dict) or "name" not in schema_data:
                         raise ValueError(f"Invalid schema format in {schema_file.name}")
 
                     # Copy to target
@@ -338,7 +333,7 @@ htmlcov/
 .vscode/
 .idea/
 """
-                with open(gitignore_path, 'w') as f:
+                with open(gitignore_path, "w") as f:
                     f.write(gitignore_content)
                 logger.info("Created .gitignore")
 

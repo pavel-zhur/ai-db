@@ -32,7 +32,7 @@ class GetSchemaTool(AIDBTool):
 
         try:
             # Create read-only transaction for this operation
-            async with await self._create_transaction("Get schema") as transaction:
+            async with self._create_transaction("Get schema") as transaction:
                 schema = await self._ai_db.get_schema(transaction)
 
                 return {
@@ -71,7 +71,7 @@ class InitFromFolderTool(AIDBTool):
             from pathlib import Path
 
             # Create transaction for this operation
-            async with await self._create_transaction(
+            async with self._create_transaction(
                 f"Initialize from folder: {source_folder}"
             ) as transaction:
                 await self._ai_db.init_from_folder(transaction, Path(source_folder))

@@ -150,24 +150,28 @@ class SchemaStore:
         """Convert dictionary to Table object."""
         columns = []
         for col_data in data.get("columns", []):
-            columns.append(Column(
-                name=col_data["name"],
-                type=col_data["type"],
-                nullable=col_data.get("nullable", True),
-                default=col_data.get("default"),
-                description=col_data.get("description"),
-            ))
+            columns.append(
+                Column(
+                    name=col_data["name"],
+                    type=col_data["type"],
+                    nullable=col_data.get("nullable", True),
+                    default=col_data.get("default"),
+                    description=col_data.get("description"),
+                )
+            )
 
         constraints = []
         for const_data in data.get("constraints", []):
-            constraints.append(Constraint(
-                name=const_data["name"],
-                type=ConstraintType(const_data["type"]),
-                columns=const_data["columns"],
-                definition=const_data.get("definition"),
-                referenced_table=const_data.get("referenced_table"),
-                referenced_columns=const_data.get("referenced_columns"),
-            ))
+            constraints.append(
+                Constraint(
+                    name=const_data["name"],
+                    type=ConstraintType(const_data["type"]),
+                    columns=const_data["columns"],
+                    definition=const_data.get("definition"),
+                    referenced_table=const_data.get("referenced_table"),
+                    referenced_columns=const_data.get("referenced_columns"),
+                )
+            )
 
         return Table(
             name=data["name"],

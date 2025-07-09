@@ -35,9 +35,10 @@ jobs:
       - script: |
           cd $(component)
           poetry install
-          poetry run pytest
+          poetry run pytest -m 'not integration'
           poetry run mypy .
           poetry run ruff check .
+          poetry run black --check .
         displayName: 'Test $(component)'
   
   - job: Integration

@@ -8,6 +8,7 @@ from ai_db import AIDB, PermissionLevel
 from tests.conftest import MockTransactionContext
 
 
+@pytest.mark.integration
 class TestQueryExecutionSimple:
     """Test end-to-end query execution with AI stub."""
 
@@ -24,7 +25,7 @@ class TestQueryExecutionSimple:
         result = await db.execute(
             "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE)",
             PermissionLevel.SCHEMA_MODIFY,
-            transaction
+            transaction,
         )
 
         assert result.status is True
@@ -44,7 +45,7 @@ class TestQueryExecutionSimple:
         result = await db.execute(
             "CREATE TABLE users (id INTEGER PRIMARY KEY)",
             PermissionLevel.SELECT,  # Not enough permission for schema_modify
-            transaction
+            transaction,
         )
 
         assert result.status is False
@@ -60,11 +61,7 @@ class TestQueryExecutionSimple:
         db = AIDB()
 
         # Execute select query
-        result = await db.execute(
-            "SELECT * FROM users",
-            PermissionLevel.SELECT,
-            transaction
-        )
+        result = await db.execute("SELECT * FROM users", PermissionLevel.SELECT, transaction)
 
         assert result.status is True
         assert result.error is None
@@ -80,20 +77,13 @@ class TestQueryExecutionSimple:
         db = AIDB()
 
         # First compile a query
-        result = await db.execute(
-            "SELECT * FROM users",
-            PermissionLevel.SELECT,
-            transaction
-        )
+        result = await db.execute("SELECT * FROM users", PermissionLevel.SELECT, transaction)
 
         assert result.status is True
         assert result.compiled_plan is not None
 
         # Execute the compiled plan
-        compiled_result = db.execute_compiled(
-            result.compiled_plan,
-            transaction
-        )
+        compiled_result = db.execute_compiled(result.compiled_plan, transaction)
 
         assert compiled_result.status is True
         assert compiled_result.data is not None

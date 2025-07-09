@@ -1,6 +1,5 @@
 """Unit tests for storage layer."""
 
-
 import pytest
 from ai_shared.protocols import TransactionProtocol
 
@@ -71,9 +70,7 @@ class TestSchemaStore:
 
     @pytest.mark.asyncio
     async def test_save_and_load_table_schema(
-        self,
-        transaction_context: TransactionProtocol,
-        sample_schema
+        self, transaction_context: TransactionProtocol, sample_schema
     ):
         """Test saving and loading table schema."""
         store = SchemaStore(transaction_context)
@@ -82,17 +79,16 @@ class TestSchemaStore:
         table = Table(
             name=sample_schema["name"],
             description=sample_schema["description"],
-            columns=[
-                Column(**col) for col in sample_schema["columns"]
-            ],
+            columns=[Column(**col) for col in sample_schema["columns"]],
             constraints=[
                 Constraint(
                     name=c["name"],
                     type=ConstraintType(c["type"]),
                     columns=c["columns"],
-                    definition=c.get("definition")
-                ) for c in sample_schema["constraints"]
-            ]
+                    definition=c.get("definition"),
+                )
+                for c in sample_schema["constraints"]
+            ],
         )
 
         # Save schema
@@ -116,7 +112,7 @@ class TestSchemaStore:
 
         docs = {
             "users": "Table containing user account information",
-            "users.email": "User's primary email address for communication"
+            "users.email": "User's primary email address for communication",
         }
 
         await store.save_semantic_documentation(docs)
@@ -133,16 +129,16 @@ class TestViewStore:
         """Test saving and loading views."""
         store = ViewStore(transaction_context)
 
-        python_code = '''
+        python_code = """
 def query_active_users(tables):
     users = tables.get("users", [])
     return [u for u in users if u.get("is_active", False)]
-'''
+"""
 
         metadata = {
             "description": "Returns all active users",
             "tables": ["users"],
-            "created_at": "2024-01-01T00:00:00Z"
+            "created_at": "2024-01-01T00:00:00Z",
         }
 
         # Save view

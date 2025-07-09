@@ -40,61 +40,29 @@ def sample_schema() -> dict[str, Any]:
         "name": "users",
         "description": "User accounts table",
         "columns": [
-            {
-                "name": "id",
-                "type": "integer",
-                "nullable": False,
-                "description": "User ID"
-            },
-            {
-                "name": "username",
-                "type": "string",
-                "nullable": False,
-                "description": "Username"
-            },
-            {
-                "name": "email",
-                "type": "string",
-                "nullable": False,
-                "description": "Email address"
-            },
-            {
-                "name": "age",
-                "type": "integer",
-                "nullable": True,
-                "description": "User age"
-            },
+            {"name": "id", "type": "integer", "nullable": False, "description": "User ID"},
+            {"name": "username", "type": "string", "nullable": False, "description": "Username"},
+            {"name": "email", "type": "string", "nullable": False, "description": "Email address"},
+            {"name": "age", "type": "integer", "nullable": True, "description": "User age"},
             {
                 "name": "is_active",
                 "type": "boolean",
                 "nullable": False,
                 "default": True,
-                "description": "Account status"
-            }
+                "description": "Account status",
+            },
         ],
         "constraints": [
-            {
-                "name": "pk_users",
-                "type": "primary_key",
-                "columns": ["id"]
-            },
-            {
-                "name": "uk_username",
-                "type": "unique",
-                "columns": ["username"]
-            },
-            {
-                "name": "uk_email",
-                "type": "unique",
-                "columns": ["email"]
-            },
+            {"name": "pk_users", "type": "primary_key", "columns": ["id"]},
+            {"name": "uk_username", "type": "unique", "columns": ["username"]},
+            {"name": "uk_email", "type": "unique", "columns": ["email"]},
             {
                 "name": "chk_age",
                 "type": "check",
                 "columns": ["age"],
-                "definition": "age >= 0 and age <= 150"
-            }
-        ]
+                "definition": "age >= 0 and age <= 150",
+            },
+        ],
     }
 
 
@@ -102,27 +70,15 @@ def sample_schema() -> dict[str, Any]:
 def sample_data() -> list[dict[str, Any]]:
     """Sample user data for testing."""
     return [
-        {
-            "id": 1,
-            "username": "alice",
-            "email": "alice@example.com",
-            "age": 30,
-            "is_active": True
-        },
-        {
-            "id": 2,
-            "username": "bob",
-            "email": "bob@example.com",
-            "age": 25,
-            "is_active": True
-        },
+        {"id": 1, "username": "alice", "email": "alice@example.com", "age": 30, "is_active": True},
+        {"id": 2, "username": "bob", "email": "bob@example.com", "age": 25, "is_active": True},
         {
             "id": 3,
             "username": "charlie",
             "email": "charlie@example.com",
             "age": None,
-            "is_active": False
-        }
+            "is_active": False,
+        },
     ]
 
 
@@ -136,7 +92,7 @@ def mock_ai_response() -> dict[str, Any]:
         "requires_python_generation": True,
         "data_loss_indicator": "none",
         "confidence": 0.95,
-        "interpretation": "Select all users from the users table"
+        "interpretation": "Select all users from the users table",
     }
 
 
@@ -150,7 +106,7 @@ def stub_ai_agent():
 def use_ai_stub(monkeypatch):
     """Automatically use AI stub for all tests."""
     # Replace AIAgent imports wherever they're used
-    monkeypatch.setattr('ai_db.core.engine.AIAgent', AIAgentStub)
+    monkeypatch.setattr("ai_db.core.engine.AIAgent", AIAgentStub)
 
     # Also ensure the dependency injection container uses the stub
     from dependency_injector import providers

@@ -41,8 +41,9 @@ class TestAIHubService:
                 service = AIHubService(mock_config)
 
                 # Check that environment variables were set
-                assert any("AI_DB_" in str(call)
-                          for call in mock_environ.__setitem__.call_args_list)
+                assert any(
+                    "AI_DB_" in str(call) for call in mock_environ.__setitem__.call_args_list
+                )
 
                 # Check that AIDB was created
                 assert service._aidb == mock_aidb_instance

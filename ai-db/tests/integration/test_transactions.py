@@ -11,9 +11,9 @@ from ai_db.storage import YAMLStore
 from ai_db.transaction import TransactionManager
 
 
+@pytest.mark.integration
 class TestTransactionIntegration:
     """Test transaction management integration."""
-
 
     @pytest.mark.asyncio
     async def test_multiple_write_operations(self, temp_dir):

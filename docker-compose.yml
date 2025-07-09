@@ -76,10 +76,16 @@ services:
           echo \"Testing \$component...\"
           cd /workspace/\$component
           poetry install
-          poetry run pytest || echo \"FAILED: \$component tests\"
+          poetry run pytest -m 'not integration' || echo \"FAILED: \$component tests\"
           poetry run mypy . || echo \"FAILED: \$component mypy\"
           poetry run ruff check . || echo \"FAILED: \$component ruff\"
           poetry run black --check . || echo \"FAILED: \$component black\"
+        done
+        echo '=== Running integration tests ==='
+        for component in ai-db ai-hub; do
+          echo \"Integration testing \$component...\"
+          cd /workspace/\$component
+          poetry run pytest -m integration || echo \"FAILED: \$component integration tests\"
         done
       "
 

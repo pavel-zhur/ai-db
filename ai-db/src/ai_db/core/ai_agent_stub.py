@@ -30,17 +30,17 @@ class AIAgentStub:
         # Parse query type from the query string
         query_lower = query.lower().strip()
 
-        if query_lower.startswith('create table'):
+        if query_lower.startswith("create table"):
             return self._create_table_operation(query, permissions)
-        elif query_lower.startswith('select') or 'select' in query_lower:
+        elif query_lower.startswith("select") or "select" in query_lower:
             return self._select_operation(query, permissions)
-        elif query_lower.startswith('insert'):
+        elif query_lower.startswith("insert"):
             return self._insert_operation(query, permissions)
-        elif query_lower.startswith('update'):
+        elif query_lower.startswith("update"):
             return self._update_operation(query, permissions)
-        elif query_lower.startswith('delete'):
+        elif query_lower.startswith("delete"):
             return self._delete_operation(query, permissions)
-        elif query_lower.startswith('create view'):
+        elif query_lower.startswith("create view"):
             return self._create_view_operation(query, permissions)
         else:
             # Default to select for unknown queries
@@ -67,7 +67,7 @@ class AIAgentStub:
                 file_updates=[],
                 python_code=None,
                 validation_queries=[],
-                error=f"Unknown operation type: {operation.operation_type}"
+                error=f"Unknown operation type: {operation.operation_type}",
             )
 
     async def handle_validation_error(
@@ -168,19 +168,16 @@ class AIAgentStub:
     def _generate_select_plan(self, query: str, operation: AIOperation) -> ExecutionPlan:
         """Generate plan for SELECT queries."""
         # Simple Python code for testing
-        python_code = '''
+        python_code = """
 def query_select(tables):
     users = tables.get("users", [])
     return [u for u in users if u.get("is_active", True)]
-'''
+"""
 
         operation.python_code = python_code
 
         return ExecutionPlan(
-            file_updates=[],
-            python_code=python_code,
-            validation_queries=[],
-            error=None
+            file_updates=[], python_code=python_code, validation_queries=[], error=None
         )
 
     def _generate_create_table_plan(self, query: str, operation: AIOperation) -> ExecutionPlan:
@@ -188,7 +185,7 @@ def query_select(tables):
         table_name = operation.affected_tables[0] if operation.affected_tables else "users"
 
         # Simple schema for testing
-        schema_content = f'''{{
+        schema_content = f"""{{
   "name": "{table_name}",
   "description": "Test table created by stub",
   "columns": [
@@ -218,30 +215,19 @@ def query_select(tables):
       "columns": ["id"]
     }}
   ]
-}}'''
+}}"""
 
         file_updates = [
             FileUpdate(
-                path=f"schemas/{table_name}.schema.yaml",
-                content=schema_content,
-                operation="create"
+                path=f"schemas/{table_name}.schema.yaml", content=schema_content, operation="create"
             ),
-            FileUpdate(
-                path=f"tables/{table_name}.yaml",
-                content="[]",
-                operation="create"
-            )
+            FileUpdate(path=f"tables/{table_name}.yaml", content="[]", operation="create"),
         ]
 
-        operation.file_updates = {
-            update.path: update.content for update in file_updates
-        }
+        operation.file_updates = {update.path: update.content for update in file_updates}
 
         return ExecutionPlan(
-            file_updates=file_updates,
-            python_code=None,
-            validation_queries=[],
-            error=None
+            file_updates=file_updates, python_code=None, validation_queries=[], error=None
         )
 
     def _generate_data_modification_plan(self, query: str, operation: AIOperation) -> ExecutionPlan:
@@ -250,80 +236,62 @@ def query_select(tables):
 
         # Simple data modification for testing
         if operation.operation_type == "insert":
-            table_content = '''[
+            table_content = """[
   {
     "id": 1,
     "name": "Test User",
     "email": "test@example.com"
   }
-]'''
+]"""
         elif operation.operation_type == "update":
-            table_content = '''[
+            table_content = """[
   {
     "id": 1,
     "name": "Updated User",
     "email": "updated@example.com"
   }
-]'''
+]"""
         else:  # delete
             table_content = "[]"
 
         file_updates = [
-            FileUpdate(
-                path=f"tables/{table_name}.yaml",
-                content=table_content,
-                operation="update"
-            )
+            FileUpdate(path=f"tables/{table_name}.yaml", content=table_content, operation="update")
         ]
 
-        operation.file_updates = {
-            update.path: update.content for update in file_updates
-        }
+        operation.file_updates = {update.path: update.content for update in file_updates}
 
         return ExecutionPlan(
-            file_updates=file_updates,
-            python_code=None,
-            validation_queries=[],
-            error=None
+            file_updates=file_updates, python_code=None, validation_queries=[], error=None
         )
 
     def _generate_create_view_plan(self, query: str, operation: AIOperation) -> ExecutionPlan:
         """Generate plan for CREATE VIEW."""
         view_name = "test_view"
 
-        python_code = '''
+        python_code = """
 def query_test_view(tables):
     users = tables.get("users", [])
     return [u for u in users if u.get("is_active", True)]
-'''
+"""
 
         file_updates = [
-            FileUpdate(
-                path=f"views/{view_name}.py",
-                content=python_code,
-                operation="create"
-            ),
+            FileUpdate(path=f"views/{view_name}.py", content=python_code, operation="create"),
             FileUpdate(
                 path=f"views/{view_name}.meta.yaml",
-                content=f'''{{
+                content=f"""{{
   "name": "{view_name}",
   "description": "Test view created by stub",
   "dependencies": ["users"]
-}}''',
-                operation="create"
-            )
+}}""",
+                operation="create",
+            ),
         ]
 
         operation.python_code = python_code
-        operation.file_updates = {
-            update.path: update.content for update in file_updates
-        }
+        operation.file_updates = {update.path: update.content for update in file_updates}
 
         return ExecutionPlan(
-            file_updates=file_updates,
-            python_code=python_code,
-            validation_queries=[],
-            error=None
+            file_updates=file_updates, python_code=python_code, validation_queries=[], error=None
         )
 
     def _check_permission(self, granted: PermissionLevel, required: PermissionLevel) -> bool:
